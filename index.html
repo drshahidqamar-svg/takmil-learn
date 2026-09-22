@@ -642,11 +642,12 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       <div id="fb-no" hidden class="card" style="background:var(--red-bg);border:1.5px solid var(--red)">
         <div class="row gap12"><div style="font-size:28px">❌</div>
           <div><div class="fw7" style="color:var(--red)">Not quite · دوبارہ کوشش</div>
-          <div class="fs13 c2">The answer is 56. Let me explain.</div></div>
+          <div class="fs13 c2" id="fb-no-text">The answer is 56. Let me explain.</div></div>
         </div>
-        <button class="btn btn-primary" style="margin-top:12px" onclick="nav('s-intervention')">
-          🤖 Get AI Explanation
-        </button>
+        <div class="row gap8" style="margin-top:12px">
+          <button class="btn btn-ghost" style="flex:1" onclick="nav('s-intervention')">🤖 AI Help</button>
+          <button class="btn btn-primary" style="flex:1" onclick="nextQuestion()">Next →</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1256,9 +1257,10 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
             <div class="fs13 c2" style="margin-top:3px">Look again at the passage — what word describes Ahmed?</div>
           </div>
         </div>
-        <button class="btn btn-primary" style="margin-top:12px;background:var(--accent)" onclick="nav('s-intervention')">
-          🤖 AI Explanation
-        </button>
+        <div class="row gap8" style="margin-top:12px">
+          <button class="btn btn-ghost" style="flex:1;background:var(--accent-lt)" onclick="nav('s-intervention')">🤖 AI Help</button>
+          <button class="btn btn-primary" style="flex:1;background:var(--accent)" onclick="nextQuestion()">Next →</button>
+        </div>
       </div>
     </div>
 
@@ -1383,9 +1385,10 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
             <div class="fs13 c2" id="eng-no-explain" style="margin-top:3px">The correct answer is shown in green.</div>
           </div>
         </div>
-        <button class="btn btn-primary" style="margin-top:12px;background:var(--blue)" onclick="nav('s-intervention')">
-          🤖 Get AI Explanation
-        </button>
+        <div class="row gap8" style="margin-top:12px">
+          <button class="btn btn-ghost" style="flex:1" onclick="nav('s-intervention')">🤖 AI Help</button>
+          <button class="btn btn-primary" style="flex:1;background:var(--blue)" onclick="nextQuestion()">Next →</button>
+        </div>
       </div>
     </div>
 
