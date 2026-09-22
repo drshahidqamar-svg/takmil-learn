@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAKMIL Device Diagnostics</title>
+<style>
+  :root {
+    --green: #1B6842; --green2: #DFF0E8;
+    --amber: #D97706; --amber2: #FEF3C7;
+    --red: #DC2626;   --red2: #FEE2E2;
+    --blue: #2563EB;  --blue2: #DBEAFE;
+    --grey: #F5F5F5;  --txt: #1a1a1a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: var(--grey); color: var(--txt); font-size: 15px; }
+  header { background: var(--green); color: #fff; padding: 16px; text-align: center; }
+  header h1 { font-size: 18px; }
+  header p  { font-size: 12px; opacity: .8; margin-top: 2px; }
+  .section { margin: 12px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .section-title { background: var(--green); color: #fff; padding: 8px 14px; font-size: 13px; font-weight: 700; letter-spacing: .05em; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; border-bottom: 1px solid #f0f0f0; }
+  .row:last-child { border-bottom: none; }
+  .label { color: #555; font-size: 13px; flex: 1; }
+  .val   { font-weight: 600; font-size: 13px; text-align: right; max-width: 55%; word-break: break-all; }
+  .pill  { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; }
+  .ok    { background: var(--green2); color: var(--green); }
+  .warn  { background: var(--amber2); color: var(--amber); }
+  .fail  { background: var(--red2); color: var(--red); }
+  .info  { background: var(--blue2); color: var(--blue); }
+  #urdu-sample { font-family: 'Noto Nastaliq Urdu', serif; font-size: 22px; direction: rtl;
+    text-align: right; padding: 12px 14px; background: #fafafa; border-top: 1px solid #eee; color: #222; }
+  #voice-list { padding: 10px 14px; font-size: 12px; color: #555; line-height: 1.7; }
+  #idb-result { padding: 10px 14px; font-size: 12px; }
+  #run-btn { display: block; width: calc(100% - 24px); margin: 12px; padding: 14px;
+    background: var(--green); color: #fff; border: none; border-radius: 10px;
+    font-size: 16px; font-weight: 700; cursor: pointer; }
+  #run-btn:active { opacity: .85; }
+  #summary { margin: 12px; padding: 14px; border-radius: 10px; background: #fff;
+    font-size: 13px; display: none; }
+  #summary.show { display: block; }
+  #ts { color: #999; font-size: 11px; text-align: center; padding: 8px; }
+</style>
+<!-- Noto Nastaliq Urdu for rendering test -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header>
+  <h1>TAKMIL Device Diagnostics</h1>
+  <p>v13 · Run this before field testing</p>
+</header>
+
+<button id="run-btn" onclick="runAll()">▶ Run Diagnostics</button>
+
+<!-- Device Info -->
+<div class="section">
+  <div class="section-title">📱 DEVICE</div>
+  <div class="row"><span class="label">Screen (CSS px)</span><span class="val" id="d-screen">—</span></div>
+  <div class="row"><span class="label">Pixel ratio</span><span class="val" id="d-dpr">—</span></div>
+  <div class="row"><span class="label">Viewport (inner)</span><span class="val" id="d-vp">—</span></div>
+  <div class="row"><span class="label">Touch support</span><span class="val" id="d-touch">—</span></div>
+  <div class="row"><span class="label">Online now</span><span class="val" id="d-online">—</span></div>
+  <div class="row"><span class="label">Standalone PWA</span><span class="val" id="d-pwa">—</span></div>
+  <div class="row"><span class="label">Browser / UA</span><span class="val" id="d-ua">—</span></div>
+</div>
+
+<!-- Storage -->
+<div class="section">
+  <div class="section-title">💾 STORAGE</div>
+  <div class="row"><span class="label">IndexedDB</span><span class="val" id="s-idb">—</span></div>
+  <div class="row"><span class="label">localStorage</span><span class="val" id="s-ls">—</span></div>
+  <div class="row"><span class="label">Service Worker API</span><span class="val" id="s-sw">—</span></div>
+  <div class="row"><span class="label">Storage quota (est.)</span><span class="val" id="s-quota">—</span></div>
+  <div class="row"><span class="label">Storage used (est.)</span><span class="val" id="s-used">—</span></div>
+  <div id="idb-result"></div>
+</div>
+
+<!-- Speech / TTS -->
+<div class="section">
+  <div class="section-title">🔊 SPEECH (TTS)</div>
+  <div class="row"><span class="label">Web Speech API</span><span class="val" id="t-api">—</span></div>
+  <div class="row"><span class="label">ur-PK voice found</span><span class="val" id="t-urdu">—</span></div>
+  <div class="row"><span class="label">en-US voice found</span><span class="val" id="t-en">—</span></div>
+  <div class="row"><span class="label">Total voices</span><span class="val" id="t-total">—</span></div>
+  <div id="voice-list"></div>
+</div>
+
+<!-- Urdu Font Render -->
+<div class="section">
+  <div class="section-title">اردو · FONT RENDER TEST</div>
+  <div id="urdu-sample">آموزش · پنجاب · سندھ · گلگت بلتستان</div>
+  <div class="row">
+    <span class="label">Do the letters above join correctly (cursive Nastaliq)?</span>
+    <span class="val">
+      <button onclick="mark('font-ok','ok','✓ Yes')" style="padding:4px 10px;margin:2px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff">✓ Yes</button>
+      <button onclick="mark('font-ok','fail','✗ No')" style="padding:4px 10px;margin:2px;border:1px solid #ccc;border-radius:6px;font-size:12px;background:#fff">✗ No</button>
+    </span>
+  </div>
+  <div class="row"><span class="label">Font render verdict</span><span class="val" id="font-ok"><span class="pill info">tap above</span></span></div>
+</div>
+
+<!-- IndexedDB write test -->
+<div class="section">
+  <div class="section-title">🗄 INDEXEDDB WRITE TEST</div>
+  <div class="row"><span class="label">Open DB</span><span class="val" id="idb-open">—</span></div>
+  <div class="row"><span class="label">Write record</span><span class="val" id="idb-write">—</span></div>
+  <div class="row"><span class="label">Read back</span><span class="val" id="idb-read">—</span></div>
+  <div class="row"><span class="label">Delete record</span><span class="val" id="idb-del">—</span></div>
+</div>
+
+<!-- Network -->
+<div class="section">
+  <div class="section-title">🌐 NETWORK</div>
+  <div class="row"><span class="label">Connection type</span><span class="val" id="n-type">—</span></div>
+  <div class="row"><span class="label">Effective speed</span><span class="val" id="n-speed">—</span></div>
+  <div class="row"><span class="label">Save-data mode</span><span class="val" id="n-save">—</span></div>
+</div>
+
+<!-- Summary -->
+<div id="summary">
+  <strong>SUMMARY</strong><br><br>
+  <span id="sum-text"></span>
+</div>
+
+<div id="ts"></div>
+
+<script>
+function pill(cls, text) {
+  return `<span class="pill ${cls}">${text}</span>`;
+}
+function set(id, html) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = html;
+}
+function mark(id, cls, text) {
+  set(id, pill(cls, text));
+}
+
+// ── Device info ──────────────────────────────────────────────────────────────
+function runDevice() {
+  set('d-screen', `${screen.width} × ${screen.height}`);
+  set('d-dpr', window.devicePixelRatio || 1);
+  set('d-vp', `${window.innerWidth} × ${window.innerHeight}`);
+  set('d-touch', ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+    ? pill('ok', '✓ Yes') : pill('warn', '✗ No (mouse only)'));
+  set('d-online', navigator.onLine ? pill('ok', '✓ Online') : pill('amber', '● Offline'));
+  const pwa = window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+  set('d-pwa', pwa ? pill('ok', '✓ Installed PWA') : pill('info', 'Browser tab'));
+  const ua = navigator.userAgent;
+  const short = ua.match(/Chrome\/[\d.]+/) ? ua.match(/Chrome\/[\d.]+/)[0]
+              : ua.match(/Firefox\/[\d.]+/) ? ua.match(/Firefox\/[\d.]+/)[0]
+              : ua.slice(0, 40);
+  set('d-ua', short);
+}
+
+// ── Storage ──────────────────────────────────────────────────────────────────
+async function runStorage() {
+  // IndexedDB API
+  set('s-idb', 'indexedDB' in window ? pill('ok', '✓ Supported') : pill('fail', '✗ Missing'));
+
+  // localStorage
+  try {
+    localStorage.setItem('_diag', '1');
+    localStorage.removeItem('_diag');
+    set('s-ls', pill('ok', '✓ OK'));
+  } catch(e) {
+    set('s-ls', pill('fail', '✗ Blocked'));
+  }
+
+  // Service Worker
+  set('s-sw', 'serviceWorker' in navigator ? pill('ok', '✓ Supported') : pill('warn', '✗ Not supported'));
+
+  // Quota
+  if (navigator.storage && navigator.storage.estimate) {
+    try {
+      const est = await navigator.storage.estimate();
+      const mb = n => (n / 1048576).toFixed(1) + ' MB';
+      set('s-quota', mb(est.quota));
+      const usedPct = est.quota > 0 ? Math.round(est.usage / est.quota * 100) : 0;
+      set('s-used', `${mb(est.usage)} (${usedPct}%)`);
+    } catch(e) {
+      set('s-quota', pill('warn', 'API error'));
+    }
+  } else {
+    set('s-quota', pill('warn', 'API not available'));
+  }
+}
+
+// ── IndexedDB write test ─────────────────────────────────────────────────────
+function runIDB() {
+  if (!('indexedDB' in window)) {
+    ['idb-open','idb-write','idb-read','idb-del'].forEach(id =>
+      set(id, pill('fail', '✗ No IDB')));
+    return;
+  }
+  const req = indexedDB.open('takmil_diag', 1);
+  req.onupgradeneeded = e => {
+    e.target.result.createObjectStore('test', { keyPath: 'id' });
+  };
+  req.onerror = () => {
+    set('idb-open', pill('fail', '✗ Open failed'));
+  };
+  req.onsuccess = e => {
+    const db = e.target.result;
+    set('idb-open', pill('ok', '✓ Opened'));
+
+    // Write
+    const tx1 = db.transaction('test', 'readwrite');
+    const store1 = tx1.objectStore('test');
+    store1.put({ id: 1, val: 'hello', ts: Date.now() });
+    tx1.oncomplete = () => {
+      set('idb-write', pill('ok', '✓ Written'));
+
+      // Read
+      const tx2 = db.transaction('test', 'readonly');
+      const req2 = tx2.objectStore('test').get(1);
+      req2.onsuccess = () => {
+        if (req2.result && req2.result.val === 'hello') {
+          set('idb-read', pill('ok', '✓ Read back'));
+        } else {
+          set('idb-read', pill('fail', '✗ Wrong value'));
+        }
+
+        // Delete
+        const tx3 = db.transaction('test', 'readwrite');
+        tx3.objectStore('test').delete(1);
+        tx3.oncomplete = () => set('idb-del', pill('ok', '✓ Deleted'));
+        tx3.onerror   = () => set('idb-del', pill('warn', '⚠ Delete error'));
+      };
+      req2.onerror = () => set('idb-read', pill('fail', '✗ Read error'));
+    };
+    tx1.onerror = () => set('idb-write', pill('fail', '✗ Write error'));
+  };
+}
+
+// ── Speech / TTS ─────────────────────────────────────────────────────────────
+function runSpeech() {
+  if (!('speechSynthesis' in window)) {
+    set('t-api', pill('fail', '✗ Not supported'));
+    set('t-urdu', pill('fail', '✗'));
+    set('t-en', pill('fail', '✗'));
+    set('t-total', '0');
+    return;
+  }
+  set('t-api', pill('ok', '✓ Supported'));
+
+  function loadVoices() {
+    const voices = speechSynthesis.getVoices();
+    if (voices.length === 0) return false;
+
+    set('t-total', voices.length);
+    const urdu = voices.filter(v => v.lang.toLowerCase().startsWith('ur'));
+    const en   = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+
+    set('t-urdu', urdu.length > 0
+      ? pill('ok', `✓ ${urdu.length} found`)
+      : pill('warn', '✗ None — English fallback'));
+    set('t-en', en.length > 0
+      ? pill('ok', `✓ ${en.length} found`)
+      : pill('fail', '✗ None'));
+
+    const display = voices.slice(0, 20).map(v =>
+      `${v.lang} — ${v.name}${v.default ? ' ★' : ''}`
+    ).join('<br>');
+    const more = voices.length > 20 ? `<br>… +${voices.length - 20} more` : '';
+    document.getElementById('voice-list').innerHTML = display + more;
+    return true;
+  }
+
+  if (!loadVoices()) {
+    speechSynthesis.onvoiceschanged = loadVoices;
+    setTimeout(() => {
+      if (!loadVoices()) {
+        set('t-total', pill('warn', 'voices timeout'));
+      }
+    }, 3000);
+  }
+}
+
+// ── Network ──────────────────────────────────────────────────────────────────
+function runNetwork() {
+  const nc = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (nc) {
+    set('n-type', nc.type || nc.effectiveType || '—');
+    set('n-speed', nc.downlink ? nc.downlink + ' Mbps' : nc.effectiveType || '—');
+    set('n-save', nc.saveData ? pill('warn', 'Save-data ON') : pill('ok', 'Off'));
+  } else {
+    set('n-type', pill('info', 'API not available'));
+    set('n-speed', '—');
+    set('n-save', '—');
+  }
+}
+
+// ── Summary ──────────────────────────────────────────────────────────────────
+function buildSummary() {
+  const checks = [
+    { id: 's-idb',  good: 'Supported', label: 'IndexedDB' },
+    { id: 's-sw',   good: 'Supported', label: 'Service Worker' },
+    { id: 't-api',  good: 'Supported', label: 'TTS/Speech' },
+  ];
+  const warnings = [];
+  const el = document.getElementById('t-urdu');
+  if (el && el.innerText.includes('None')) warnings.push('No Urdu voice — app will speak English only');
+  const el2 = document.getElementById('idb-write');
+  if (el2 && el2.innerText.includes('✗')) warnings.push('IndexedDB write failed — data will not persist');
+  const el3 = document.getElementById('s-sw');
+  if (el3 && el3.innerText.includes('✗')) warnings.push('Service Worker not supported — offline mode unavailable');
+
+  const ts = new Date().toLocaleString();
+  const screen = `${screen ? window.screen.width + '×' + window.screen.height : '?'}`;
+  let html = `Device: ${navigator.userAgent.match(/Android[\s\/][\d.]+/)?.[0] || 'Unknown Android'}<br>`;
+  html += `Screen: ${window.screen.width}×${window.screen.height} · Viewport: ${window.innerWidth}×${window.innerHeight}<br>`;
+  html += `Tested: ${ts}<br><br>`;
+
+  if (warnings.length === 0) {
+    html += '<span style="color:#1B6842;font-weight:700">✓ All critical checks passed — device is TAKMIL-ready.</span>';
+  } else {
+    html += '<span style="color:#D97706;font-weight:700">⚠ Issues found:</span><br>';
+    warnings.forEach(w => { html += `• ${w}<br>`; });
+  }
+
+  document.getElementById('sum-text').innerHTML = html;
+  document.getElementById('summary').classList.add('show');
+}
+
+// ── Run all ──────────────────────────────────────────────────────────────────
+async function runAll() {
+  document.getElementById('run-btn').textContent = '⏳ Running…';
+  runDevice();
+  await runStorage();
+  runIDB();
+  runSpeech();
+  runNetwork();
+  setTimeout(buildSummary, 1500); // wait for async IDB + voices
+  document.getElementById('ts').textContent = 'Run at: ' + new Date().toLocaleString();
+  document.getElementById('run-btn').textContent = '✓ Done — scroll for results';
+}
+</script>
+</body>
+</html>
