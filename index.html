@@ -3230,10 +3230,9 @@ function renderUrduQ(q) {
 
   resetUrdu();
   perfState._currentQ = q;
-  // Auto-read passage and question aloud (English translation first, then Urdu)
-  setTimeout(() => speak(
-    (q.passageTrans || '') + (q.textEn ? ' ' + q.textEn : ''),
-    (q.passage    || '') + ' ' + (q.text || '')
+  // Auto-read passage and question in Urdu only
+  setTimeout(() => speakOnly(
+    (q.passage || '') + ' ' + (q.text || ''), 'ur-PK'
   ), 400);
 }
 
