@@ -1000,7 +1000,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
           ⬇ Export JSON
         </button>
       </div>
-      <button onclick="nav('s-data-dash')" class="btn btn-secondary"
+      <button onclick="nav('s-data-dash');loadAdminDataDash();" class="btn btn-secondary"
               style="width:100%;margin-top:8px;font-size:12.5px;padding:9px 10px">
         📊 Data Dashboard
       </button>
@@ -5124,19 +5124,19 @@ function _stopDashRefresh() {
   _dashInterval = null;
 }
 
-// Auto-load dashboard when s-data-dash becomes visible; start/stop 15 s refresh
+// Auto-load dashboard when s-data-dash gets .active class; start/stop 15 s refresh
 (function() {
   document.addEventListener('DOMContentLoaded', () => {
     const ddEl = document.getElementById('s-data-dash');
     if (!ddEl) return;
     new MutationObserver(() => {
-      if (ddEl.style.display !== 'none') {
+      if (ddEl.classList.contains('active')) {
         loadAdminDataDash();
         _startDashRefresh();
       } else {
         _stopDashRefresh();
       }
-    }).observe(ddEl, { attributes: true, attributeFilter: ['style'] });
+    }).observe(ddEl, { attributes: true, attributeFilter: ['class'] });
   });
 })();
 
