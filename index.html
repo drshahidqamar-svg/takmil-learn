@@ -1009,6 +1009,30 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
     </div>
 
+    <!-- Webhook Settings card -->
+    <div class="card card-sm" style="border:1.5px solid var(--border)">
+      <div class="row gap8 jbet" style="cursor:pointer" onclick="toggleWebhookPanel()">
+        <div class="row gap8">
+          <span style="font-size:18px">⚙️</span>
+          <div>
+            <div class="fw7 fs13">Webhook Settings · ویب ہک</div>
+            <div class="fs11 c3" id="webhook-status-line">Google Sheets sync URL</div>
+          </div>
+        </div>
+        <span id="webhook-chevron" style="font-size:16px;color:var(--text-3)">▸</span>
+      </div>
+      <div id="webhook-panel" style="display:none;margin-top:12px">
+        <label class="fs12 c2" style="display:block;margin-bottom:6px">Google Sheets Webhook URL</label>
+        <input id="admin-webhook-input" type="url"
+          placeholder="https://script.google.com/macros/s/..."
+          style="border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:12px;background:var(--surface-2);color:var(--text-1);width:100%;box-sizing:border-box;margin-bottom:8px">
+        <button onclick="saveAdminWebhook()" class="btn btn-primary" style="width:100%;font-size:13px;padding:10px">
+          Save URL · محفوظ کریں
+        </button>
+        <div class="fs11 c3" style="margin-top:6px">Paste the Web app URL from your Google Apps Script deployment.</div>
+      </div>
+    </div>
+
     <!-- Class breakdown -->
     <div>
       <div class="sec-head"><h2>Class Performance · کلاس کارکردگی</h2><a href="#">All grades</a></div>
@@ -4110,6 +4134,42 @@ function updateAdminConnCard(isOnline) {
 }
 
 /* ── SYNC CONTROLS ──────────────────────────────────── */
+function toggleWebhookPanel() {
+  const panel   = document.getElementById('webhook-panel');
+  const chevron = document.getElementById('webhook-chevron');
+  const input   = document.getElementById('admin-webhook-input');
+  const statusLine = document.getElementById('webhook-status-line');
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    chevron.textContent = '▾';
+    const saved = getSetting('sheetsWebhook');
+    input.value = saved || '';
+    statusLine.textContent = saved ? '✅ URL saved' : 'No URL set yet';
+  } else {
+    panel.style.display = 'none';
+    chevron.textContent = '▸';
+  }
+}
+
+function saveAdminWebhook() {
+  const input = document.getElementById('admin-webhook-input');
+  const url   = (input.value || '').trim();
+  if (!url) {
+    alert('Please paste your Google Apps Script Web app URL first.');
+    return;
+  }
+  if (!url.startsWith('https://script.google.com/')) {
+    alert('URL should start with https://script.google.com/ — please check and try again.');
+    return;
+  }
+  setSetting('sheetsWebhook', url);
+  const statusLine = document.getElementById('webhook-status-line');
+  if (statusLine) statusLine.textContent = '✅ URL saved';
+  document.getElementById('webhook-panel').style.display = 'none';
+  document.getElementById('webhook-chevron').textContent = '▸';
+  alert('✅ Webhook URL saved! Tap Sync Now to upload data to Google Sheets.');
+}
+
 function triggerManualSync() {
   if (!navigator.onLine) {
     showSyncToast(false);
