@@ -1875,11 +1875,11 @@ function pickUrdu(el, correct, letter) {
   if (fb) fb.hidden = false;
   const hintRow = document.getElementById('u-hint-row');
   if (hintRow) hintRow.hidden = true;
-  // Speak feedback
+  // Speak feedback — Urdu only
   if (correct) {
-    speak('Correct! Well done!', 'شاباش! بہت اچھے!');
+    speakOnly('شاباش! بہت اچھے!', 'ur');
   } else {
-    speak('Not quite. Try again.', 'دوبارہ کوشش کریں۔');
+    speakOnly('دوبارہ کوشش کریں۔', 'ur');
   }
   setTimeout(() => {
     if (fb) fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -3232,7 +3232,7 @@ function renderUrduQ(q) {
   perfState._currentQ = q;
   // Auto-read passage and question in Urdu only
   setTimeout(() => speakOnly(
-    (q.passage || '') + ' ' + (q.text || ''), 'ur-PK'
+    (q.passage || '') + ' ' + (q.text || ''), 'ur'
   ), 400);
 }
 
