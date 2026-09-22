@@ -1155,7 +1155,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
         🌐 Show English translation
       </button>
       <div id="trans-block" hidden class="fs13 c2" style="margin-top:8px;padding:10px;background:var(--surface-2);border-radius:8px;line-height:1.7;font-style:italic">
-        "Ahmed is a hardworking student. He wakes up early every morning and goes to school. He reads his books with great attention. His teacher is very happy with him."
+        <p>"Ahmed is a hardworking student. He wakes up early every morning and goes to school. He reads his books with great attention. His teacher is very happy with him."</p>
       </div>
     </div>
 
@@ -3208,7 +3208,8 @@ function renderUrduQ(q) {
 
   const transBlock = document.getElementById('trans-block');
   if (transBlock) {
-    transBlock.querySelector('p').textContent = q.passageTrans;
+    const transPara = transBlock.querySelector('p');
+    if (transPara) transPara.textContent = q.passageTrans;
     transBlock.hidden = true;
   }
 
