@@ -1162,7 +1162,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     <!-- Question -->
     <div class="card">
       <div class="badge b-amber" style="margin-bottom:10px">سوال · Question 2</div>
-      <div class="u-text" style="font-size:21px;color:var(--text-1)">احمد کیسا طالب علم ہے؟</div>
+      <div class="u-text" data-qstem style="font-size:21px;color:var(--text-1)">احمد کیسا طالب علم ہے؟</div>
       <div class="fs13 c3" style="margin-top:4px">What kind of student is Ahmed?</div>
     </div>
 
@@ -3594,7 +3594,7 @@ async function syncToServer() {
         // mark source response as synced
         if (item.type === 'response') {
           const idx = rs.index('synced');
-          idx.getAll(false).onsuccess = ev => {
+          idx.getAll(IDBKeyRange.only(0)).onsuccess = ev => {
             ev.target.result.forEach(r => rs.put({ ...r, synced:true }));
           };
         }
