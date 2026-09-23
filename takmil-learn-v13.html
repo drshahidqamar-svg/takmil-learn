@@ -4712,19 +4712,19 @@ document.getElementById('tog').classList.add('on');
       <!-- Subject score chart -->
       <div style="background:var(--surface-2);border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Avg Score by Subject</div>
-        <canvas id="dash-chart-subj" height="110"></canvas>
+        <div id="dash-chart-subj"></div>
       </div>
 
       <!-- Grade chart -->
       <div style="background:var(--surface-2);border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Score by Grade</div>
-        <canvas id="dash-chart-grade" height="110"></canvas>
+        <div id="dash-chart-grade"></div>
       </div>
 
       <!-- Score distribution -->
       <div style="background:var(--surface-2);border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Score Distribution</div>
-        <canvas id="dash-chart-dist" height="100"></canvas>
+        <div id="dash-chart-dist"></div>
       </div>
 
       <!-- At-risk list -->
@@ -4958,18 +4958,56 @@ async function syncPendingSessions() {
   } catch(e) { alert('Sync error: ' + e.message); }
 }
 
-/* Chart.js instance refs so we can destroy before recreating */
-const _dashCharts = { subj: null, grade: null, dist: null };
+/* ── Pure-CSS bar chart renderer (no external library needed) ── */
+function _renderBarChart(containerId, bars, opts) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const maxVal     = opts.maxVal || Math.max(...bars.map(b => b.value), 1);
+  const horizontal = opts.horizontal !== false;
+
+  if (horizontal) {
+    el.innerHTML = bars.map(b => {
+      const pct = Math.round(b.value / maxVal * 100);
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <div style="width:56px;font-size:11px;color:var(--text-2);text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.label}</div>
+        <div style="flex:1;background:var(--border,#e5e7eb);border-radius:4px;height:18px;overflow:hidden">
+          <div style="width:${pct}%;background:${b.color||'#3b82f6'};height:100%;border-radius:4px;min-width:${pct>0?3:0}px"></div>
+        </div>
+        <div style="width:34px;font-size:11px;font-weight:700;color:var(--text-1);flex-shrink:0;text-align:right">${b.label2 !== undefined ? b.label2 : b.value}</div>
+      </div>`;
+    }).join('');
+  } else {
+    el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:2px;height:90px;padding-bottom:18px;position:relative">` +
+      bars.map(b => {
+        const hPct = Math.round(b.value / maxVal * 100);
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative">
+          ${b.value ? `<div style="position:absolute;top:-14px;font-size:8px;color:var(--text-3);font-weight:600">${b.value}</div>` : ''}
+          <div style="width:100%;height:${hPct || 1}%;background:${b.color||'#6366f1'};border-radius:2px 2px 0 0;align-self:flex-end;min-height:${b.value?3:1}px"></div>
+          <div style="position:absolute;bottom:-16px;font-size:8px;color:var(--text-3);text-align:center;width:100%">${b.label}</div>
+        </div>`;
+      }).join('') + `</div>`;
+  }
+}
 
 async function loadAdminDataDash() {
+  const updEl = document.getElementById('dash-updated-at');
   try {
+    if (updEl) updEl.textContent = 'Loading…';
+
     const d = await openDB();
-    const sessions = await new Promise((res, rej) => {
-      const tx = d.transaction('sessions', 'readonly');
-      const r  = tx.objectStore('sessions').getAll();
-      r.onsuccess = () => res(r.result);
-      r.onerror   = () => rej(r.error);
-    });
+
+    /* Safely get sessions — handle missing store (no students yet) */
+    let sessions = [];
+    try {
+      sessions = await new Promise((res, rej) => {
+        const tx = d.transaction('sessions', 'readonly');
+        const r  = tx.objectStore('sessions').getAll();
+        r.onsuccess = () => res(r.result || []);
+        r.onerror   = () => rej(r.error);
+      });
+    } catch(e) {
+      console.warn('[dash] sessions store not found:', e.message);
+    }
 
     /* ── KPI calculations ── */
     const allQ       = sessions.flatMap(s => s.questions || []);
@@ -4979,7 +5017,6 @@ async function loadAdminDataDash() {
     const uniqueStud = new Set(sessions.map(s => s.studentId).filter(Boolean)).size;
     const pending    = sessions.filter(s => !s.synced).length;
 
-    /* at-risk: sessions where pct correct < 50% */
     const atRiskSess = sessions.filter(s => {
       const qs = s.questions || [];
       return qs.length > 0 && (qs.filter(q => q.correct).length / qs.length) < 0.5;
@@ -4993,96 +5030,47 @@ async function loadAdminDataDash() {
     set('dk-hints',    totalHints);
     set('dk-students', uniqueStud);
     set('dk-pending',  pending);
-
-    const updEl = document.getElementById('dash-updated-at');
     if (updEl) updEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
 
-    /* ── Helper: destroy old chart, create new ── */
-    function mkChart(key, canvasId, cfg) {
-      if (_dashCharts[key]) { _dashCharts[key].destroy(); _dashCharts[key] = null; }
-      const cvs = document.getElementById(canvasId);
-      if (!cvs || typeof Chart === 'undefined') return;
-      _dashCharts[key] = new Chart(cvs, cfg);
-    }
-
-    const isDark   = document.documentElement.getAttribute('data-theme') === 'dark'
-                     || (window.matchMedia && window.matchMedia('(prefers-color-scheme:dark)').matches);
-    const textClr  = isDark ? '#adb5bd' : '#555';
-    const gridClr  = isDark ? 'rgba(255,255,255,.07)' : 'rgba(0,0,0,.07)';
-
-    const chartDefaults = {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { ticks: { color: textClr, font: { size: 10 } }, grid: { color: gridClr } },
-        y: { ticks: { color: textClr, font: { size: 10 } }, grid: { color: gridClr }, beginAtZero: true, max: 100 }
-      }
-    };
-
-    /* ── Chart 1: Avg score by subject ── */
-    const subjects = ['math','urdu','english'];
-    const subjLabels = ['Math','Urdu','English'];
-    const subjColors = ['#3b82f6','#10b981','#f59e0b'];
-    const subjAvgs   = subjects.map(sub => {
-      const qs = sessions.filter(s => s.subject === sub).flatMap(s => s.questions || []);
-      return qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
+    /* ── Chart 1: Avg score by subject (horizontal bars) ── */
+    const subjMeta = [
+      { key: 'math',    label: 'Math',    color: '#3b82f6' },
+      { key: 'urdu',    label: 'Urdu',    color: '#10b981' },
+      { key: 'english', label: 'English', color: '#f59e0b' }
+    ];
+    const subjBars = subjMeta.map(m => {
+      const qs  = sessions.filter(s => s.subject === m.key).flatMap(s => s.questions || []);
+      const avg = qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
+      return { label: m.label, value: avg, color: m.color, label2: avg + '%' };
     });
+    _renderBarChart('dash-chart-subj', subjBars, { maxVal: 100, horizontal: true });
 
-    mkChart('subj', 'dash-chart-subj', {
-      type: 'bar',
-      data: {
-        labels: subjLabels,
-        datasets: [{ data: subjAvgs, backgroundColor: subjColors, borderRadius: 6 }]
-      },
-      options: { ...chartDefaults, indexAxis: 'y',
-        scales: {
-          x: { ...chartDefaults.scales.x, max: 100 },
-          y: { ticks: { color: textClr, font: { size: 11 } }, grid: { display: false } }
-        }
-      }
-    });
+    /* ── Chart 2: Score by grade (horizontal bars) ── */
+    const gradeSet  = [...new Set(sessions.map(s => s.grade).filter(Boolean))].sort();
+    const gradeBars = gradeSet.length
+      ? gradeSet.map(g => {
+          const qs  = sessions.filter(s => s.grade === g).flatMap(s => s.questions || []);
+          const avg = qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
+          return { label: g, value: avg, color: '#6366f1', label2: avg + '%' };
+        })
+      : [{ label: 'No data', value: 0, color: '#6366f1', label2: '—' }];
+    _renderBarChart('dash-chart-grade', gradeBars, { maxVal: 100, horizontal: true });
 
-    /* ── Chart 2: Avg score by grade ── */
-    const gradeSet = [...new Set(sessions.map(s => s.grade).filter(Boolean))].sort();
-    const gradeAvgs = gradeSet.map(g => {
-      const qs = sessions.filter(s => s.grade === g).flatMap(s => s.questions || []);
-      return qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
-    });
-
-    mkChart('grade', 'dash-chart-grade', {
-      type: 'bar',
-      data: {
-        labels: gradeSet.length ? gradeSet : ['No data'],
-        datasets: [{ data: gradeSet.length ? gradeAvgs : [0], backgroundColor: '#6366f1', borderRadius: 6 }]
-      },
-      options: chartDefaults
-    });
-
-    /* ── Chart 3: Score distribution (buckets 0-9%, 10-19%, … 90-100%) ── */
-    const buckets = Array(10).fill(0);
+    /* ── Chart 3: Score distribution buckets 0–90 (vertical bars) ── */
+    const buckets    = Array(10).fill(0);
     sessions.forEach(s => {
       const qs = s.questions || [];
       if (!qs.length) return;
       const pct = Math.round(qs.filter(q => q.correct).length / qs.length * 100);
-      const idx = Math.min(Math.floor(pct / 10), 9);
-      buckets[idx]++;
+      buckets[Math.min(Math.floor(pct / 10), 9)]++;
     });
-    const distLabels = ['0-9','10-19','20-29','30-39','40-49','50-59','60-69','70-79','80-89','90-100'];
-    const distColors = buckets.map((_, i) => i < 5 ? '#f87171' : i < 7 ? '#fb923c' : '#4ade80');
-
-    mkChart('dist', 'dash-chart-dist', {
-      type: 'bar',
-      data: {
-        labels: distLabels,
-        datasets: [{ data: buckets, backgroundColor: distColors, borderRadius: 4 }]
-      },
-      options: { ...chartDefaults,
-        scales: {
-          x: { ticks: { color: textClr, font: { size: 9 } }, grid: { color: gridClr } },
-          y: { ticks: { color: textClr, font: { size: 10 }, stepSize: 1 }, grid: { color: gridClr }, beginAtZero: true }
-        }
-      }
-    });
+    const distColors = ['#f87171','#f87171','#f87171','#f87171','#f87171','#fb923c','#fb923c','#4ade80','#4ade80','#4ade80'];
+    const distBars   = buckets.map((n, i) => ({
+      label: ['0','10','20','30','40','50','60','70','80','90'][i],
+      value: n,
+      color: distColors[i]
+    }));
+    _renderBarChart('dash-chart-dist', distBars, { maxVal: Math.max(...buckets, 1), horizontal: false });
 
     /* ── At-risk list ── */
     const riskEl = document.getElementById('dash-risk-list');
@@ -5104,7 +5092,6 @@ async function loadAdminDataDash() {
 
   } catch(e) {
     console.warn('[dash] loadAdminDataDash error', e);
-    const updEl = document.getElementById('dash-updated-at');
     if (updEl) updEl.textContent = 'Error: ' + e.message;
   }
 }
@@ -5115,7 +5102,7 @@ function _startDashRefresh() {
   if (_dashInterval) return;
   _dashInterval = setInterval(() => {
     const dd = document.getElementById('s-data-dash');
-    if (dd && dd.style.display !== 'none') loadAdminDataDash();
+    if (dd && dd.classList.contains('active')) loadAdminDataDash();
     else _stopDashRefresh();
   }, 15000);
 }
@@ -5142,5 +5129,4 @@ function _stopDashRefresh() {
 
 </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 </body></html>
