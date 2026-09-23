@@ -1000,7 +1000,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
           ⬇ Export JSON
         </button>
       </div>
-      <button onclick="nav('s-data-dash')" class="btn btn-secondary"
+      <button onclick="nav('s-data-dash');loadAdminDataDash();" class="btn btn-secondary"
               style="width:100%;margin-top:8px;font-size:12.5px;padding:9px 10px">
         📊 Data Dashboard
       </button>
@@ -3659,7 +3659,7 @@ function showSyncToast(ok) {
    Registered via Blob URL so no separate sw.js file is needed.
    For production: extract to /sw.js served at the app's root.
 ────────────────────────────────────────────────────── */
-const SW_CACHE   = 'takmil-learn-v1';
+const SW_CACHE   = 'takmil-learn-v13';
 const SW_ASSETS  = [location.href]; // single-file app — cache itself
 
 const SW_CODE = `
@@ -3682,10 +3682,10 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Cache-first for same-origin; network-first for fonts / CDN
   const url = new URL(e.request.url);
   const isCDN = url.hostname.includes('googleapis') || url.hostname.includes('gstatic');
   if (isCDN) {
+    // Network-first for fonts/CDN
     e.respondWith(
       fetch(e.request).then(r => {
         const clone = r.clone();
@@ -3694,16 +3694,16 @@ self.addEventListener('fetch', e => {
       }).catch(() => caches.match(e.request))
     );
   } else {
+    // Network-first for same-origin (HTML app) — always get fresh version,
+    // fall back to cache only when offline
     e.respondWith(
-      caches.match(e.request).then(r => {
-        if (r) return r;
-        return fetch(e.request).then(nr => {
-          if (!nr || nr.status !== 200 || nr.type === 'opaque') return nr;
+      fetch(e.request).then(nr => {
+        if (nr && nr.status === 200 && nr.type !== 'opaque') {
           const clone = nr.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
-          return nr;
-        });
-      })
+        }
+        return nr;
+      }).catch(() => caches.match(e.request))
     );
   }
 });
@@ -4626,7 +4626,7 @@ document.getElementById('tog').classList.add('on');
   <!-- ═══════════════════════════════════════════════════════════════════════
        s-teacher-obs — Teacher Observation (v13)
   ══════════════════════════════════════════════════════════════════════════ -->
-  <div id="s-teacher-obs" class="screen" style="display:none">
+  <div id="s-teacher-obs" class="screen">
     <div class="hdr row gap8" style="align-items:center;padding:12px 16px 0">
       <button class="icon-btn" onclick="skipTeacherObs()" style="font-size:20px;background:none;border:none;cursor:pointer">✕</button>
       <span class="fw7 fs16">Teacher Observation · مشاہدہ</span>
@@ -4670,21 +4670,76 @@ document.getElementById('tog').classList.add('on');
   <!-- ═══════════════════════════════════════════════════════════════════════
        s-data-dash — Admin Data Dashboard (v13)
   ══════════════════════════════════════════════════════════════════════════ -->
-  <div id="s-data-dash" class="screen" style="display:none">
-    <div class="hdr row gap8" style="align-items:center;padding:12px 16px 0">
+  <div id="s-data-dash" class="screen">
+    <div class="hdr row gap8" style="align-items:center;padding:12px 16px 8px;position:sticky;top:0;background:var(--surface);z-index:10;border-bottom:1px solid var(--border)">
       <button class="icon-btn" onclick="nav('s-admin')" style="font-size:20px;background:none;border:none;cursor:pointer">←</button>
-      <span class="fw7 fs16">📊 Data Dashboard</span>
-    </div>
-    <div style="padding:16px">
-      <div id="dash-content">
-        <p style="color:var(--text-3);text-align:center;margin-top:40px">Loading…</p>
+      <div class="f1">
+        <div class="fw7 fs15">📊 Live Dashboard</div>
+        <div class="fs11" style="color:var(--text-3)" id="dash-updated-at"></div>
       </div>
-      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-primary" style="width:100%" onclick="syncPendingSessions()">
-          🔄 Sync Pending Sessions to Sheets
+      <button onclick="loadAdminDataDash()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--text-2);cursor:pointer">↻ Refresh</button>
+    </div>
+    <div class="scroll" style="padding:14px 16px 20px">
+
+      <!-- KPI tiles -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px" id="dash-kpis">
+        <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center">
+          <div id="dk-sessions" style="font-size:1.5rem;font-weight:800;color:var(--green)">—</div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px">Sessions</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center">
+          <div id="dk-avg" style="font-size:1.5rem;font-weight:800;color:var(--green)">—</div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px">Avg Score</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center">
+          <div id="dk-risk" style="font-size:1.5rem;font-weight:800;color:#dc2626">—</div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px">At Risk</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center">
+          <div id="dk-hints" style="font-size:1.5rem;font-weight:800;color:#d97706">—</div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px">AI Hints</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center">
+          <div id="dk-students" style="font-size:1.5rem;font-weight:800;color:#2563eb">—</div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px">Students</div>
+        </div>
+        <div style="background:var(--surface-2);border-radius:10px;padding:10px;text-align:center">
+          <div id="dk-pending" style="font-size:1.5rem;font-weight:800;color:#d97706">—</div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px">Unsynced</div>
+        </div>
+      </div>
+
+      <!-- Subject score chart -->
+      <div style="background:var(--surface-2);border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Avg Score by Subject</div>
+        <div id="dash-chart-subj"></div>
+      </div>
+
+      <!-- Grade chart -->
+      <div style="background:var(--surface-2);border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Score by Grade</div>
+        <div id="dash-chart-grade"></div>
+      </div>
+
+      <!-- Score distribution -->
+      <div style="background:var(--surface-2);border-radius:10px;padding:12px;margin-bottom:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Score Distribution</div>
+        <div id="dash-chart-dist"></div>
+      </div>
+
+      <!-- At-risk list -->
+      <div style="background:var(--surface-2);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">⚠ Students Below 50%</div>
+        <div id="dash-risk-list"></div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-primary" style="width:100%;font-size:13px" onclick="syncPendingSessions()">
+          🔄 Sync to Google Sheets
         </button>
-        <button class="btn btn-ghost" style="width:100%" onclick="exportAllData()">
-          💾 Export All Data (JSON v2)
+        <button class="btn btn-ghost" style="width:100%;font-size:13px" onclick="exportAllData()">
+          💾 Export JSON
         </button>
       </div>
     </div>
@@ -4749,6 +4804,9 @@ async function endSession() {
   activeSession.endTime = new Date().toISOString();
   await _saveSession(activeSession);
   syncSessionToSheets(activeSession);   // background, non-blocking
+  // Refresh dashboard if it is currently open
+  const _dd = document.getElementById('s-data-dash');
+  if (_dd && _dd.style.display !== 'none') loadAdminDataDash();
   openTeacherObs(activeSession);
 }
 
@@ -4900,87 +4958,172 @@ async function syncPendingSessions() {
   } catch(e) { alert('Sync error: ' + e.message); }
 }
 
-async function loadAdminDataDash() {
-  const el = document.getElementById('dash-content');
+/* ── Pure-CSS bar chart renderer (no external library needed) ── */
+function _renderBarChart(containerId, bars, opts) {
+  const el = document.getElementById(containerId);
   if (!el) return;
-  el.innerHTML = '<p style="color:var(--text-3);text-align:center;padding:24px">Loading…</p>';
-  try {
-    const d  = await openDB();
-    const [sessions, responses] = await Promise.all([
-      new Promise((res,rej) => { const tx=d.transaction('sessions','readonly'); const r=tx.objectStore('sessions').getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }),
-      new Promise((res,rej) => { const tx=d.transaction('responses','readonly'); const r=tx.objectStore('responses').getAll(); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); })
-    ]);
+  const maxVal     = opts.maxVal || Math.max(...bars.map(b => b.value), 1);
+  const horizontal = opts.horizontal !== false;
 
-    const synced  = sessions.filter(s => s.synced).length;
-    const pending = sessions.length - synced;
-
-    const subjects = ['math','urdu','english'];
-    const subjectNames = { math:'Math', urdu:'Urdu', english:'English' };
-    const bySubject = {};
-    subjects.forEach(sub => {
-      const ss   = sessions.filter(x => x.subject === sub);
-      const allQ = ss.flatMap(x => x.questions || []);
-      bySubject[sub] = {
-        sessions:      ss.length,
-        avgScore:      allQ.length ? Math.round(allQ.filter(q=>q.correct).length/allQ.length*100) : 0,
-        avgTimeSec:    allQ.length ? Math.round(allQ.reduce((a,q)=>a+(q.timeMs||0),0)/allQ.length/1000) : 0,
-        interventions: allQ.filter(q=>q.interventionFired).length
-      };
-    });
-
-    const obsSessions = sessions.filter(s => s.teacherObs && s.teacherObs.engagement);
-    const avgEng = obsSessions.length
-      ? (obsSessions.reduce((a,s)=>a+s.teacherObs.engagement,0) / obsSessions.length).toFixed(1)
-      : '—';
-
-    el.innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
-        <div style="background:#eff6ff;border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:1.7rem;font-weight:800;color:#1d4ed8">${sessions.length}</div>
-          <div style="font-size:0.73rem;color:#1e40af;margin-top:2px">Total Sessions</div>
+  if (horizontal) {
+    el.innerHTML = bars.map(b => {
+      const pct = Math.round(b.value / maxVal * 100);
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <div style="width:56px;font-size:11px;color:var(--text-2);text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${b.label}</div>
+        <div style="flex:1;background:var(--border,#e5e7eb);border-radius:4px;height:18px;overflow:hidden">
+          <div style="width:${pct}%;background:${b.color||'#3b82f6'};height:100%;border-radius:4px;min-width:${pct>0?3:0}px"></div>
         </div>
-        <div style="background:#fef3c7;border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:1.7rem;font-weight:800;color:#b45309">${pending}</div>
-          <div style="font-size:0.73rem;color:#92400e;margin-top:2px">Pending Sync</div>
-        </div>
-        <div style="background:#f0fdf4;border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:1.7rem;font-weight:800;color:#15803d">${responses.length}</div>
-          <div style="font-size:0.73rem;color:#166534;margin-top:2px">Total Responses</div>
-        </div>
-        <div style="background:#fdf4ff;border-radius:10px;padding:12px;text-align:center">
-          <div style="font-size:1.7rem;font-weight:800;color:#7e22ce">${avgEng}</div>
-          <div style="font-size:0.73rem;color:#6b21a8;margin-top:2px">Avg Engagement</div>
-        </div>
-      </div>
-
-      <div class="fw7 fs13" style="margin-bottom:8px;color:var(--text-2)">By Subject</div>
-      ${subjects.map(s => `
-        <div style="background:var(--surface-2);border-radius:8px;padding:10px;margin-bottom:8px">
-          <div class="fw7 fs13" style="margin-bottom:4px">${subjectNames[s]}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:0.8rem;color:var(--text-2)">
-            <span>Sessions <strong>${bySubject[s].sessions}</strong></span>
-            <span>Avg Score <strong>${bySubject[s].avgScore}%</strong></span>
-            <span>Avg Time/Q <strong>${bySubject[s].avgTimeSec}s</strong></span>
-            <span>AI Hints <strong>${bySubject[s].interventions}</strong></span>
-          </div>
-        </div>`).join('')}
-
-      <div style="font-size:0.72rem;color:var(--text-3);margin-top:10px;text-align:center">
-        ${synced}/${sessions.length} sessions synced · ${obsSessions.length} teacher observations
+        <div style="width:34px;font-size:11px;font-weight:700;color:var(--text-1);flex-shrink:0;text-align:right">${b.label2 !== undefined ? b.label2 : b.value}</div>
       </div>`;
-  } catch(e) {
-    el.innerHTML = `<p style="color:var(--red);padding:12px">Error: ${e.message}</p>`;
+    }).join('');
+  } else {
+    el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:2px;height:90px;padding-bottom:18px;position:relative">` +
+      bars.map(b => {
+        const hPct = Math.round(b.value / maxVal * 100);
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative">
+          ${b.value ? `<div style="position:absolute;top:-14px;font-size:8px;color:var(--text-3);font-weight:600">${b.value}</div>` : ''}
+          <div style="width:100%;height:${hPct || 1}%;background:${b.color||'#6366f1'};border-radius:2px 2px 0 0;align-self:flex-end;min-height:${b.value?3:1}px"></div>
+          <div style="position:absolute;bottom:-16px;font-size:8px;color:var(--text-3);text-align:center;width:100%">${b.label}</div>
+        </div>`;
+      }).join('') + `</div>`;
   }
 }
 
-// Auto-load dashboard when s-data-dash becomes visible (via style change)
+async function loadAdminDataDash() {
+  const updEl = document.getElementById('dash-updated-at');
+  try {
+    if (updEl) updEl.textContent = 'Loading…';
+
+    const d = await openDB();
+
+    /* Safely get sessions — handle missing store (no students yet) */
+    let sessions = [];
+    try {
+      sessions = await new Promise((res, rej) => {
+        const tx = d.transaction('sessions', 'readonly');
+        const r  = tx.objectStore('sessions').getAll();
+        r.onsuccess = () => res(r.result || []);
+        r.onerror   = () => rej(r.error);
+      });
+    } catch(e) {
+      console.warn('[dash] sessions store not found:', e.message);
+    }
+
+    /* ── KPI calculations ── */
+    const allQ       = sessions.flatMap(s => s.questions || []);
+    const totalQ     = allQ.length;
+    const globalAvg  = totalQ ? Math.round(allQ.filter(q => q.correct).length / totalQ * 100) : 0;
+    const totalHints = allQ.filter(q => q.interventionFired).length;
+    const uniqueStud = new Set(sessions.map(s => s.studentId).filter(Boolean)).size;
+    const pending    = sessions.filter(s => !s.synced).length;
+
+    const atRiskSess = sessions.filter(s => {
+      const qs = s.questions || [];
+      return qs.length > 0 && (qs.filter(q => q.correct).length / qs.length) < 0.5;
+    });
+
+    /* ── Update KPI tiles ── */
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('dk-sessions', sessions.length);
+    set('dk-avg',      globalAvg + '%');
+    set('dk-risk',     atRiskSess.length);
+    set('dk-hints',    totalHints);
+    set('dk-students', uniqueStud);
+    set('dk-pending',  pending);
+    if (updEl) updEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    /* ── Chart 1: Avg score by subject (horizontal bars) ── */
+    const subjMeta = [
+      { key: 'math',    label: 'Math',    color: '#3b82f6' },
+      { key: 'urdu',    label: 'Urdu',    color: '#10b981' },
+      { key: 'english', label: 'English', color: '#f59e0b' }
+    ];
+    const subjBars = subjMeta.map(m => {
+      const qs  = sessions.filter(s => s.subject === m.key).flatMap(s => s.questions || []);
+      const avg = qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
+      return { label: m.label, value: avg, color: m.color, label2: avg + '%' };
+    });
+    _renderBarChart('dash-chart-subj', subjBars, { maxVal: 100, horizontal: true });
+
+    /* ── Chart 2: Score by grade (horizontal bars) ── */
+    const gradeSet  = [...new Set(sessions.map(s => s.grade).filter(Boolean))].sort();
+    const gradeBars = gradeSet.length
+      ? gradeSet.map(g => {
+          const qs  = sessions.filter(s => s.grade === g).flatMap(s => s.questions || []);
+          const avg = qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
+          return { label: g, value: avg, color: '#6366f1', label2: avg + '%' };
+        })
+      : [{ label: 'No data', value: 0, color: '#6366f1', label2: '—' }];
+    _renderBarChart('dash-chart-grade', gradeBars, { maxVal: 100, horizontal: true });
+
+    /* ── Chart 3: Score distribution buckets 0–90 (vertical bars) ── */
+    const buckets    = Array(10).fill(0);
+    sessions.forEach(s => {
+      const qs = s.questions || [];
+      if (!qs.length) return;
+      const pct = Math.round(qs.filter(q => q.correct).length / qs.length * 100);
+      buckets[Math.min(Math.floor(pct / 10), 9)]++;
+    });
+    const distColors = ['#f87171','#f87171','#f87171','#f87171','#f87171','#fb923c','#fb923c','#4ade80','#4ade80','#4ade80'];
+    const distBars   = buckets.map((n, i) => ({
+      label: ['0','10','20','30','40','50','60','70','80','90'][i],
+      value: n,
+      color: distColors[i]
+    }));
+    _renderBarChart('dash-chart-dist', distBars, { maxVal: Math.max(...buckets, 1), horizontal: false });
+
+    /* ── At-risk list ── */
+    const riskEl = document.getElementById('dash-risk-list');
+    if (riskEl) {
+      if (!atRiskSess.length) {
+        riskEl.innerHTML = '<div style="color:var(--text-3);font-size:12px;text-align:center;padding:8px">No at-risk students 🎉</div>';
+      } else {
+        riskEl.innerHTML = atRiskSess.slice(0, 10).map(s => {
+          const qs  = s.questions || [];
+          const pct = qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--text-1);font-weight:600">${s.studentId || '—'}</span>
+            <span style="color:var(--text-3)">${s.grade || ''} · ${s.subject || ''}</span>
+            <span style="color:#dc2626;font-weight:700">${pct}%</span>
+          </div>`;
+        }).join('') + (atRiskSess.length > 10 ? `<div style="font-size:11px;color:var(--text-3);text-align:center;padding-top:6px">+${atRiskSess.length-10} more</div>` : '');
+      }
+    }
+
+  } catch(e) {
+    console.warn('[dash] loadAdminDataDash error', e);
+    if (updEl) updEl.textContent = 'Error: ' + e.message;
+  }
+}
+
+/* Auto-refresh every 15 s while dashboard is visible */
+let _dashInterval = null;
+function _startDashRefresh() {
+  if (_dashInterval) return;
+  _dashInterval = setInterval(() => {
+    const dd = document.getElementById('s-data-dash');
+    if (dd && dd.classList.contains('active')) loadAdminDataDash();
+    else _stopDashRefresh();
+  }, 15000);
+}
+function _stopDashRefresh() {
+  clearInterval(_dashInterval);
+  _dashInterval = null;
+}
+
+// Auto-load dashboard when s-data-dash gets .active class; start/stop 15 s refresh
 (function() {
   document.addEventListener('DOMContentLoaded', () => {
     const ddEl = document.getElementById('s-data-dash');
     if (!ddEl) return;
     new MutationObserver(() => {
-      if (ddEl.style.display !== 'none') loadAdminDataDash();
-    }).observe(ddEl, { attributes: true, attributeFilter: ['style'] });
+      if (ddEl.classList.contains('active')) {
+        loadAdminDataDash();
+        _startDashRefresh();
+      } else {
+        _stopDashRefresh();
+      }
+    }).observe(ddEl, { attributes: true, attributeFilter: ['class'] });
   });
 })();
 
