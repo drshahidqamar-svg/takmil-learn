@@ -3659,7 +3659,7 @@ function showSyncToast(ok) {
    Registered via Blob URL so no separate sw.js file is needed.
    For production: extract to /sw.js served at the app's root.
 ────────────────────────────────────────────────────── */
-const SW_CACHE   = 'takmil-learn-v1';
+const SW_CACHE   = 'takmil-learn-v13';
 const SW_ASSETS  = [location.href]; // single-file app — cache itself
 
 const SW_CODE = `
@@ -3682,10 +3682,10 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Cache-first for same-origin; network-first for fonts / CDN
   const url = new URL(e.request.url);
   const isCDN = url.hostname.includes('googleapis') || url.hostname.includes('gstatic');
   if (isCDN) {
+    // Network-first for fonts/CDN
     e.respondWith(
       fetch(e.request).then(r => {
         const clone = r.clone();
@@ -3694,16 +3694,16 @@ self.addEventListener('fetch', e => {
       }).catch(() => caches.match(e.request))
     );
   } else {
+    // Network-first for same-origin (HTML app) — always get fresh version,
+    // fall back to cache only when offline
     e.respondWith(
-      caches.match(e.request).then(r => {
-        if (r) return r;
-        return fetch(e.request).then(nr => {
-          if (!nr || nr.status !== 200 || nr.type === 'opaque') return nr;
+      fetch(e.request).then(nr => {
+        if (nr && nr.status === 200 && nr.type !== 'opaque') {
           const clone = nr.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
-          return nr;
-        });
-      })
+        }
+        return nr;
+      }).catch(() => caches.match(e.request))
     );
   }
 });
