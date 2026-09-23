@@ -4868,8 +4868,13 @@ document.getElementById('tog').classList.add('on');
 
       <!-- main content area (replaced entirely by loadDash) -->
       <div id="dash-body">
-        <div style="text-align:center;padding:40px 16px;color:#6b7280;font-size:14px">
-          Tap <strong>↻ Refresh</strong> to load dashboard data.
+        <div style="text-align:center;padding:32px 16px 20px">
+          <div style="font-size:36px;margin-bottom:8px">📊</div>
+          <div style="font-size:14px;color:#6b7280;margin-bottom:16px">Tap to load session data</div>
+          <button onclick="loadDash()"
+            style="width:100%;padding:12px;background:#1d4ed8;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">
+            ↻ Load Dashboard
+          </button>
         </div>
       </div>
 
@@ -5144,14 +5149,15 @@ async function loadDash() {
     /* 1 — open IDB */
     const db = await openDB();
 
-    /* 2 — read sessions store */
+    /* 2 — read sessions store (4s timeout in case IDB hangs) */
     const sessions = await new Promise((res, rej) => {
+      const timer = setTimeout(() => res([]), 4000); // safety timeout
       try {
         const tx = db.transaction('sessions', 'readonly');
         const rq = tx.objectStore('sessions').getAll();
-        rq.onsuccess = () => res(rq.result || []);
-        rq.onerror   = () => rej(rq.error);
-      } catch(e) { res([]); }   // store may not exist yet
+        rq.onsuccess = () => { clearTimeout(timer); res(rq.result || []); };
+        rq.onerror   = () => { clearTimeout(timer); rej(rq.error); };
+      } catch(e) { clearTimeout(timer); res([]); }   // store may not exist yet
     });
 
     if (status) status.textContent = 'Updated ' + new Date().toLocaleTimeString();
@@ -5299,6 +5305,7 @@ async function loadDash() {
       </div>`;
 
   } catch(err) {
+    console.error('[loadDash] error:', err);
     if (btn) btn.disabled = false;
     if (status) status.textContent = 'Error — see below';
     const body2 = document.getElementById('dash-body');
@@ -5393,8 +5400,13 @@ async function clearDashData() {
 document.addEventListener('DOMContentLoaded', () => {
   const ddEl = document.getElementById('s-data-dash');
   if (!ddEl) return;
+  let _dashTimer = null;
   new MutationObserver(() => {
-    if (ddEl.classList.contains('active')) loadDash();
+    if (ddEl.classList.contains('active')) {
+      // small delay so nav() finishes before we query the DOM
+      clearTimeout(_dashTimer);
+      _dashTimer = setTimeout(() => loadDash(), 80);
+    }
   }).observe(ddEl, { attributes: true, attributeFilter: ['class'] });
 });
 
