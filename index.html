@@ -4996,7 +4996,7 @@ async function loadAdminDataDash() {
 
     const d = await openDB();
 
-    /* Safely get sessions — handle missing store (no students yet) */
+    /* Safely get sessions — handle missing store */
     let sessions = [];
     try {
       sessions = await new Promise((res, rej) => {
@@ -5007,6 +5007,28 @@ async function loadAdminDataDash() {
       });
     } catch(e) {
       console.warn('[dash] sessions store not found:', e.message);
+    }
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+    /* ── Empty state ── */
+    if (!sessions.length) {
+      ['dk-sessions','dk-avg','dk-risk','dk-hints','dk-students','dk-pending'].forEach(id => set(id, '—'));
+      ['dash-chart-subj','dash-chart-grade','dash-chart-dist'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<div style="color:var(--text-3);font-size:11px;text-align:center;padding:10px 0">No data yet</div>';
+      });
+      const riskEl = document.getElementById('dash-risk-list');
+      if (riskEl) riskEl.innerHTML = `
+        <div style="text-align:center;padding:16px 8px">
+          <div style="font-size:13px;color:var(--text-2);margin-bottom:4px;font-weight:600">No sessions recorded yet</div>
+          <div style="font-size:12px;color:var(--text-3);margin-bottom:14px">Complete a student test, or load sample data to preview the dashboard.</div>
+          <button onclick="seedDemoSessions()" class="btn btn-primary" style="font-size:13px;padding:10px 20px;width:100%">
+            📥 Load Sample Data
+          </button>
+        </div>`;
+      if (updEl) updEl.textContent = 'No sessions found';
+      return;
     }
 
     /* ── KPI calculations ── */
@@ -5023,7 +5045,6 @@ async function loadAdminDataDash() {
     });
 
     /* ── Update KPI tiles ── */
-    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
     set('dk-sessions', sessions.length);
     set('dk-avg',      globalAvg + '%');
     set('dk-risk',     atRiskSess.length);
@@ -5032,7 +5053,7 @@ async function loadAdminDataDash() {
     set('dk-pending',  pending);
     if (updEl) updEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
 
-    /* ── Chart 1: Avg score by subject (horizontal bars) ── */
+    /* ── Chart 1: Avg score by subject ── */
     const subjMeta = [
       { key: 'math',    label: 'Math',    color: '#3b82f6' },
       { key: 'urdu',    label: 'Urdu',    color: '#10b981' },
@@ -5045,18 +5066,20 @@ async function loadAdminDataDash() {
     });
     _renderBarChart('dash-chart-subj', subjBars, { maxVal: 100, horizontal: true });
 
-    /* ── Chart 2: Score by grade (horizontal bars) ── */
-    const gradeSet  = [...new Set(sessions.map(s => s.grade).filter(Boolean))].sort();
-    const gradeBars = gradeSet.length
+    /* ── Chart 2: Score by grade ── */
+    const gradeOrder = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8'];
+    const gradeSet   = [...new Set(sessions.map(s => s.grade).filter(Boolean))]
+                         .sort((a,b) => gradeOrder.indexOf(a) - gradeOrder.indexOf(b));
+    const gradeBars  = gradeSet.length
       ? gradeSet.map(g => {
           const qs  = sessions.filter(s => s.grade === g).flatMap(s => s.questions || []);
           const avg = qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
-          return { label: g, value: avg, color: '#6366f1', label2: avg + '%' };
+          return { label: g.replace('Grade ','Gr '), value: avg, color: '#6366f1', label2: avg + '%' };
         })
       : [{ label: 'No data', value: 0, color: '#6366f1', label2: '—' }];
     _renderBarChart('dash-chart-grade', gradeBars, { maxVal: 100, horizontal: true });
 
-    /* ── Chart 3: Score distribution buckets 0–90 (vertical bars) ── */
+    /* ── Chart 3: Score distribution ── */
     const buckets    = Array(10).fill(0);
     sessions.forEach(s => {
       const qs = s.questions || [];
@@ -5066,7 +5089,7 @@ async function loadAdminDataDash() {
     });
     const distColors = ['#f87171','#f87171','#f87171','#f87171','#f87171','#fb923c','#fb923c','#4ade80','#4ade80','#4ade80'];
     const distBars   = buckets.map((n, i) => ({
-      label: ['0','10','20','30','40','50','60','70','80','90'][i],
+      label: (i * 10) + '%',
       value: n,
       color: distColors[i]
     }));
@@ -5081,10 +5104,11 @@ async function loadAdminDataDash() {
         riskEl.innerHTML = atRiskSess.slice(0, 10).map(s => {
           const qs  = s.questions || [];
           const pct = qs.length ? Math.round(qs.filter(q => q.correct).length / qs.length * 100) : 0;
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
-            <span style="color:var(--text-1);font-weight:600">${s.studentId || '—'}</span>
-            <span style="color:var(--text-3)">${s.grade || ''} · ${s.subject || ''}</span>
-            <span style="color:#dc2626;font-weight:700">${pct}%</span>
+          const name = s.studentName || s.studentId || '—';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="color:var(--text-1);font-weight:600;flex:1">${name}</span>
+            <span style="color:var(--text-3);margin:0 8px">${s.grade || ''} · ${s.subject || ''}</span>
+            <span style="color:#dc2626;font-weight:700;min-width:32px;text-align:right">${pct}%</span>
           </div>`;
         }).join('') + (atRiskSess.length > 10 ? `<div style="font-size:11px;color:var(--text-3);text-align:center;padding-top:6px">+${atRiskSess.length-10} more</div>` : '');
       }
@@ -5093,6 +5117,73 @@ async function loadAdminDataDash() {
   } catch(e) {
     console.warn('[dash] loadAdminDataDash error', e);
     if (updEl) updEl.textContent = 'Error: ' + e.message;
+  }
+}
+
+/* ── Seed realistic demo sessions into IDB ────────────────────────────── */
+async function seedDemoSessions() {
+  const btn = document.querySelector('[onclick="seedDemoSessions()"]');
+  if (btn) { btn.textContent = '⏳ Seeding…'; btn.disabled = true; }
+  try {
+    const d = await openDB();
+    const now = Date.now();
+    const SEED = [
+      // Math sessions (target ~79% avg)
+      {stu:'Ahmad Raza',     sub:'math',    grade:'Grade 5', c:8, t:10, hints:1},
+      {stu:'Fatima Malik',   sub:'math',    grade:'Grade 5', c:9, t:10, hints:0},
+      {stu:'Hassan Khan',    sub:'math',    grade:'Grade 4', c:7, t:10, hints:2},
+      {stu:'Zainab Ali',     sub:'math',    grade:'Grade 4', c:8, t:10, hints:1},
+      {stu:'Ali Hussain',    sub:'math',    grade:'Grade 3', c:6, t:10, hints:3},
+      {stu:'Sara Qureshi',   sub:'math',    grade:'Grade 3', c:9, t:10, hints:0},
+      {stu:'Omar Sheikh',    sub:'math',    grade:'Grade 5', c:3, t:10, hints:4}, // at-risk
+      // Urdu sessions (target ~72% avg)
+      {stu:'Ahmad Raza',     sub:'urdu',    grade:'Grade 5', c:7, t:10, hints:2},
+      {stu:'Ayesha Bibi',    sub:'urdu',    grade:'Grade 5', c:8, t:10, hints:1},
+      {stu:'Fatima Malik',   sub:'urdu',    grade:'Grade 4', c:6, t:10, hints:3},
+      {stu:'Hassan Khan',    sub:'urdu',    grade:'Grade 4', c:7, t:10, hints:2},
+      {stu:'Zainab Ali',     sub:'urdu',    grade:'Grade 3', c:3, t:10, hints:5}, // at-risk
+      {stu:'Ali Hussain',    sub:'urdu',    grade:'Grade 3', c:8, t:10, hints:0},
+      // English sessions (target ~77% avg)
+      {stu:'Sara Qureshi',   sub:'english', grade:'Grade 5', c:8, t:10, hints:1},
+      {stu:'Omar Sheikh',    sub:'english', grade:'Grade 5', c:7, t:10, hints:2},
+      {stu:'Ayesha Bibi',    sub:'english', grade:'Grade 4', c:9, t:10, hints:0},
+      {stu:'Ahmad Raza',     sub:'english', grade:'Grade 4', c:7, t:10, hints:2},
+      {stu:'Fatima Malik',   sub:'english', grade:'Grade 3', c:4, t:10, hints:4}, // at-risk
+      {stu:'Hassan Khan',    sub:'english', grade:'Grade 3', c:8, t:10, hints:1},
+      {stu:'Zainab Ali',     sub:'english', grade:'Grade 5', c:8, t:10, hints:0},
+    ];
+
+    for (let i = 0; i < SEED.length; i++) {
+      const s = SEED[i];
+      const questions = Array.from({length: s.t}, (_, q) => ({
+        qId: `demo_q${i}_${q}`,
+        correct: q < s.c,
+        interventionFired: q >= s.c && q < s.c + s.hints
+      }));
+      const sess = {
+        sessionId:   `demo_${i}_${now}`,
+        studentId:   'stu_' + s.stu.toLowerCase().replace(/\s+/g,'_'),
+        studentName: s.stu,
+        subject:     s.sub,
+        grade:       s.grade,
+        schoolCode:  'IMS001',
+        startTime:   new Date(now - (SEED.length - i) * 900000).toISOString(),
+        endTime:     new Date(now - (SEED.length - i) * 900000 + 600000).toISOString(),
+        questions,
+        synced:      false
+      };
+      await new Promise((res, rej) => {
+        const tx = d.transaction('sessions', 'readwrite');
+        tx.objectStore('sessions').put(sess);
+        tx.oncomplete = res;
+        tx.onerror    = () => rej(tx.error);
+      });
+    }
+    console.log('[v13] Seeded', SEED.length, 'demo sessions');
+    loadAdminDataDash();
+  } catch(e) {
+    console.error('[v13] seedDemoSessions error', e);
+    if (btn) { btn.textContent = '📥 Load Sample Data'; btn.disabled = false; }
   }
 }
 
