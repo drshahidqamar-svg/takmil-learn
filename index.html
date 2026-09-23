@@ -1033,6 +1033,18 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
     </div>
 
+    <!-- PIN Management card -->
+    <div class="card card-sm" style="border:1.5px solid var(--border)">
+      <div class="row gap8">
+        <span style="font-size:18px">🔑</span>
+        <div class="f1">
+          <div class="fw7 fs13">Manage PINs · پن کوڈ</div>
+          <div class="fs11 c3">Set or reset Teacher, Admin and Student PINs</div>
+        </div>
+        <button onclick="nav('s-pin-mgmt');loadPinMgmt()" class="btn btn-secondary" style="font-size:12px;padding:6px 14px;width:auto">Manage</button>
+      </div>
+    </div>
+
     <!-- Class breakdown -->
     <div>
       <div class="sec-head"><h2>Class Performance · کلاس کارکردگی</h2><a href="#">All grades</a></div>
@@ -4089,6 +4101,118 @@ function _pinError() {
   setTimeout(_updatePinDots, 120);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   PIN MANAGEMENT SCREEN
+   ══════════════════════════════════════════════════════════════ */
+function loadPinMgmt() {
+  let setup = {};
+  try { setup = JSON.parse(localStorage.getItem('takmil-setup') || '{}'); } catch(e) {}
+
+  /* pre-fill staff fields with masked dots (not actual value for security) */
+  const tEl = document.getElementById('pm-teacher-pin');
+  const aEl = document.getElementById('pm-admin-pin');
+  const tSt = document.getElementById('pm-teacher-status');
+  const aSt = document.getElementById('pm-admin-status');
+  if (tEl) tEl.value = '';
+  if (aEl) aEl.value = '';
+  if (tSt) tSt.textContent = setup.teacherPin ? `✅ PIN is set (${setup.teacherPin.length} digits) — enter new value to change` : '⚠ Not set — Teacher can log in without PIN';
+  if (aSt) aSt.textContent = setup.adminPin   ? `✅ PIN is set (${setup.adminPin.length} digits) — enter new value to change`   : '⚠ Not set — Admin can log in without PIN';
+
+  /* render student list */
+  let roster = [];
+  try { roster = JSON.parse(localStorage.getItem('takmil-roster') || '[]'); } catch(e) {}
+  const listEl = document.getElementById('pm-student-list');
+  if (!listEl) return;
+
+  if (!roster.length) {
+    listEl.innerHTML = '<div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px">No students added yet. Add them in School Setup.</div>';
+    return;
+  }
+
+  listEl.innerHTML = roster.map((entry, i) => {
+    const name    = typeof entry === 'string' ? entry : (entry.name || '');
+    const hasPin  = typeof entry === 'object' && entry.pin;
+    const initials = name.charAt(0).toUpperCase();
+    return `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="width:34px;height:34px;border-radius:50%;background:#dbeafe;color:#1d4ed8;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:#111">${name}</div>
+          <div style="font-size:11px;color:#6b7280">${hasPin ? '✅ PIN set' : '⚪ No PIN — logs in by name'}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="pm-stu-${i}" type="password" inputmode="numeric" maxlength="4"
+          placeholder="${hasPin ? 'Enter new 4-digit PIN' : '4-digit PIN (optional)'}"
+          style="flex:1;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff;color:#111;letter-spacing:4px">
+        <button onclick="document.getElementById('pm-stu-${i}').type=document.getElementById('pm-stu-${i}').type==='password'?'text':'password'"
+          style="padding:9px;background:none;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;cursor:pointer">👁</button>
+        ${hasPin ? `<button onclick="clearStudentPin(${i})" style="padding:9px 10px;background:none;border:1.5px solid #fca5a5;border-radius:8px;font-size:14px;cursor:pointer;color:#dc2626">✕</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveStaffPins() {
+  const newTeacher = (document.getElementById('pm-teacher-pin')?.value || '').trim();
+  const newAdmin   = (document.getElementById('pm-admin-pin')?.value   || '').trim();
+
+  if (newTeacher && !/^\d{4,6}$/.test(newTeacher)) { alert('Teacher PIN must be 4–6 digits'); return; }
+  if (newAdmin   && !/^\d{4,6}$/.test(newAdmin))   { alert('Admin PIN must be 4–6 digits');   return; }
+
+  let setup = {};
+  try { setup = JSON.parse(localStorage.getItem('takmil-setup') || '{}'); } catch(e) {}
+
+  if (newTeacher) setup.teacherPin = newTeacher;
+  else            delete setup.teacherPin;
+
+  if (newAdmin)   setup.adminPin   = newAdmin;
+  else            delete setup.adminPin;
+
+  localStorage.setItem('takmil-setup', JSON.stringify(setup));
+
+  /* show feedback */
+  const tSt = document.getElementById('pm-teacher-status');
+  const aSt = document.getElementById('pm-admin-status');
+  if (tSt) tSt.textContent = setup.teacherPin ? `✅ Saved (${setup.teacherPin.length} digits)` : '⚪ Cleared — no PIN required';
+  if (aSt) aSt.textContent = setup.adminPin   ? `✅ Saved (${setup.adminPin.length} digits)`   : '⚪ Cleared — no PIN required';
+  if (tSt) tSt.style.color = '#16a34a';
+  if (aSt) aSt.style.color = '#16a34a';
+  document.getElementById('pm-teacher-pin').value = '';
+  document.getElementById('pm-admin-pin').value   = '';
+}
+
+function saveStudentPins() {
+  let roster = [];
+  try { roster = JSON.parse(localStorage.getItem('takmil-roster') || '[]'); } catch(e) {}
+
+  let changed = 0;
+  roster = roster.map((entry, i) => {
+    const val = (document.getElementById(`pm-stu-${i}`)?.value || '').trim();
+    let obj = typeof entry === 'string' ? { name: entry } : { ...entry };
+    if (val) {
+      if (!/^\d{4}$/.test(val)) { alert(`Student PIN must be exactly 4 digits (check entry ${i+1})`); throw new Error('invalid'); }
+      obj.pin = val;
+      changed++;
+    }
+    return obj;
+  });
+
+  localStorage.setItem('takmil-roster', JSON.stringify(roster));
+  /* clear inputs */
+  roster.forEach((_, i) => { const el = document.getElementById(`pm-stu-${i}`); if(el) el.value = ''; });
+  alert(`✅ ${changed} student PIN(s) saved.`);
+  loadPinMgmt();   // refresh status labels
+}
+
+function clearStudentPin(idx) {
+  let roster = [];
+  try { roster = JSON.parse(localStorage.getItem('takmil-roster') || '[]'); } catch(e) {}
+  if (roster[idx] && typeof roster[idx] === 'object') { delete roster[idx].pin; }
+  localStorage.setItem('takmil-roster', JSON.stringify(roster));
+  loadPinMgmt();
+}
+
 /* ── REAL CONNECTIVITY DETECTION ───────────────────── */
 function updateConnPill(isOnline) {
   const pill = document.getElementById('conn-pill');
@@ -4663,6 +4787,64 @@ document.getElementById('tog').classList.add('on');
       </button>
       <button class="btn btn-ghost" style="width:100%" onclick="skipTeacherObs()">
         Skip observation · چھوڑیں
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       s-pin-mgmt — PIN Management Screen
+  ══════════════════════════════════════════════════════════════════════════ -->
+  <div id="s-pin-mgmt" class="screen" style="flex-direction:column">
+    <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 8px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
+      <button onclick="nav('s-admin')" style="font-size:20px;background:none;border:none;cursor:pointer;line-height:1">←</button>
+      <div style="font-size:15px;font-weight:800;flex:1">🔑 Manage PINs</div>
+    </div>
+    <div class="scroll" style="flex:1;overflow-y:auto;padding:14px 16px 24px">
+
+      <!-- info banner -->
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:#1e40af">
+        PINs are saved on <strong>this device only</strong>. Set them here after every fresh install or new browser. Leave a field blank to remove that PIN.
+      </div>
+
+      <!-- Staff PINs -->
+      <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Staff PINs · عملہ</div>
+
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:12px">
+        <div style="margin-bottom:12px">
+          <label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px">🖊️ Teacher PIN <span style="font-weight:400;color:#6b7280">(4–6 digits)</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="pm-teacher-pin" type="password" inputmode="numeric" maxlength="6" placeholder="e.g. 1234"
+              style="flex:1;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:15px;background:#fff;color:#111;letter-spacing:4px">
+            <button onclick="document.getElementById('pm-teacher-pin').type=document.getElementById('pm-teacher-pin').type==='password'?'text':'password'"
+              style="padding:10px;background:none;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;cursor:pointer">👁</button>
+          </div>
+          <div id="pm-teacher-status" style="font-size:11px;color:#6b7280;margin-top:4px"></div>
+        </div>
+
+        <div>
+          <label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px">📊 Admin PIN <span style="font-weight:400;color:#6b7280">(4–6 digits)</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="pm-admin-pin" type="password" inputmode="numeric" maxlength="6" placeholder="e.g. 5678"
+              style="flex:1;padding:10px 12px;border:1.5px solid #d1d5db;border-radius:8px;font-size:15px;background:#fff;color:#111;letter-spacing:4px">
+            <button onclick="document.getElementById('pm-admin-pin').type=document.getElementById('pm-admin-pin').type==='password'?'text':'password'"
+              style="padding:10px;background:none;border:1.5px solid #d1d5db;border-radius:8px;font-size:14px;cursor:pointer">👁</button>
+          </div>
+          <div id="pm-admin-status" style="font-size:11px;color:#6b7280;margin-top:4px"></div>
+        </div>
+      </div>
+
+      <button onclick="saveStaffPins()" class="btn btn-primary" style="width:100%;font-size:14px;padding:12px;margin-bottom:20px">
+        💾 Save Staff PINs · محفوظ کریں
+      </button>
+
+      <!-- Student PINs -->
+      <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Student PINs · طلبہ</div>
+      <div id="pm-student-list" style="margin-bottom:12px">
+        <div style="color:#9ca3af;font-size:13px;text-align:center;padding:16px">Loading…</div>
+      </div>
+
+      <button onclick="saveStudentPins()" class="btn btn-primary" style="width:100%;font-size:14px;padding:12px">
+        💾 Save Student PINs · محفوظ کریں
       </button>
     </div>
   </div>
