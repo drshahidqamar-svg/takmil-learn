@@ -4745,6 +4745,199 @@ if (!_savedSetup || !_savedSetup.schoolCode) {
 toggleOffline();
 document.getElementById('tog').classList.add('on');
 
+/* ══════════════════════════════════════════════════════════
+   DATA DASHBOARD — loadDash() and helpers
+   Lives in the FIRST script block so it's always defined.
+══════════════════════════════════════════════════════════ */
+function loadAdminDataDash() { loadDash(); }
+
+async function loadDash() {
+  var body   = document.getElementById('dash-body');
+  var status = document.getElementById('dash-status');
+  var btn    = document.getElementById('dash-refresh-btn');
+  if (!body) { console.error('[loadDash] #dash-body not found'); return; }
+
+  body.innerHTML = '<div style="text-align:center;padding:40px 16px;color:#6b7280;font-size:14px">🔄 Loading…</div>';
+  if (status) status.textContent = 'Loading…';
+  if (btn) btn.disabled = true;
+
+  try {
+    var db2 = await openDB();
+    var sessions = await new Promise(function(res, rej) {
+      var timer = setTimeout(function(){ res([]); }, 5000);
+      try {
+        var tx = db2.transaction('sessions', 'readonly');
+        var rq = tx.objectStore('sessions').getAll();
+        rq.onsuccess = function(){ clearTimeout(timer); res(rq.result || []); };
+        rq.onerror   = function(){ clearTimeout(timer); rej(rq.error); };
+      } catch(e) { clearTimeout(timer); res([]); }
+    });
+
+    if (status) status.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    if (btn) btn.disabled = false;
+
+    if (!sessions.length) {
+      body.innerHTML =
+        '<div style="text-align:center;padding:32px 16px 20px">' +
+          '<div style="font-size:40px;margin-bottom:8px">📭</div>' +
+          '<div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px">No sessions yet</div>' +
+          '<div style="font-size:13px;color:#6b7280;margin-bottom:20px">Run an assessment or load sample data to preview.</div>' +
+          '<button onclick="seedDash(this)" style="width:100%;padding:12px;background:#1d4ed8;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">📥 Load Sample Data</button>' +
+        '</div>';
+      return;
+    }
+
+    // KPIs
+    var allQ   = []; sessions.forEach(function(s){ (s.questions||[]).forEach(function(q){ allQ.push(q); }); });
+    var totQ   = allQ.length;
+    var corr   = allQ.filter(function(q){ return q.correct; }).length;
+    var avgPct = totQ ? Math.round(corr / totQ * 100) : 0;
+    var hints  = allQ.filter(function(q){ return q.interventionFired; }).length;
+    var stuSet = {}; sessions.forEach(function(s){ if(s.studentId) stuSet[s.studentId]=1; });
+    var studs  = Object.keys(stuSet).length;
+    var pending = sessions.filter(function(s){ return !s.synced; }).length;
+    var atRisk  = sessions.filter(function(s){
+      var qs = s.questions || []; if (!qs.length) return false;
+      return qs.filter(function(q){ return q.correct; }).length / qs.length < 0.5;
+    });
+
+    // Subject averages
+    var SUBJS = [{k:'math',l:'Math',c:'#3b82f6'},{k:'urdu',l:'Urdu',c:'#10b981'},{k:'english',l:'English',c:'#f59e0b'}];
+    var subjHtml = SUBJS.map(function(m){
+      var qs = []; sessions.forEach(function(s){ if(s.subject===m.k)(s.questions||[]).forEach(function(q){ qs.push(q); }); });
+      var avg = qs.length ? Math.round(qs.filter(function(q){ return q.correct; }).length/qs.length*100) : 0;
+      return hbar(m.l, avg, m.c);
+    }).join('');
+
+    // At-risk rows
+    var riskRows = atRisk.length
+      ? atRisk.slice(0,10).map(function(s){
+          var qs = s.questions||[];
+          var pct = qs.length ? Math.round(qs.filter(function(q){ return q.correct; }).length/qs.length*100) : 0;
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #e5e7eb;font-size:12px">' +
+            '<span style="font-weight:700;flex:1;color:#111827">' + (s.studentName||s.studentId||'—') + '</span>' +
+            '<span style="color:#9ca3af;margin:0 8px">' + (s.grade||'') + ' · ' + (s.subject||'') + '</span>' +
+            '<span style="color:#dc2626;font-weight:800;min-width:36px;text-align:right">' + pct + '%</span>' +
+          '</div>';
+        }).join('')
+      : '<div style="color:#9ca3af;font-size:12px;text-align:center;padding:8px">No at-risk students 🎉</div>';
+
+    body.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">' +
+        kpi(sessions.length, 'Sessions', '#16a34a') + kpi(avgPct+'%','Avg Score','#2563eb') + kpi(atRisk.length,'At Risk','#dc2626') +
+        kpi(hints,'AI Hints','#d97706') + kpi(studs,'Students','#7c3aed') + kpi(pending,'Unsynced','#d97706') +
+      '</div>' +
+      section('📚 By Subject', subjHtml) +
+      section('⚠ Below 50%', riskRows) +
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">' +
+        '<button class="btn btn-primary" style="width:100%;font-size:13px" onclick="syncPendingSessions()">🔄 Sync to Google Sheets</button>' +
+        '<button class="btn btn-ghost" style="width:100%;font-size:13px" onclick="exportAllData()">💾 Export JSON</button>' +
+        '<button onclick="clearDashData()" style="width:100%;font-size:12px;padding:9px;background:none;border:1px solid #fca5a5;border-radius:8px;color:#dc2626;cursor:pointer">🗑 Clear Demo Data</button>' +
+      '</div>';
+
+  } catch(err) {
+    console.error('[loadDash]', err);
+    if (btn) btn.disabled = false;
+    if (status) status.textContent = 'Error';
+    var b2 = document.getElementById('dash-body');
+    if (b2) b2.innerHTML =
+      '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:16px;margin-bottom:12px">' +
+        '<div style="font-weight:700;color:#dc2626;font-size:13px;margin-bottom:4px">Dashboard error</div>' +
+        '<div style="font-size:12px;color:#7f1d1d;word-break:break-all">' + (err&&err.message||String(err)) + '</div>' +
+      '</div>' +
+      '<button onclick="loadDash()" style="width:100%;padding:11px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">↻ Try again</button>';
+  }
+}
+
+function kpi(n, label, color) {
+  return '<div style="background:#f9fafb;border-radius:10px;padding:10px;text-align:center;border:1px solid #e5e7eb">' +
+    '<div style="font-size:1.4rem;font-weight:800;color:'+color+'">' + n + '</div>' +
+    '<div style="font-size:10px;color:#6b7280;margin-top:2px">' + label + '</div>' +
+  '</div>';
+}
+function hbar(label, val, bg) {
+  return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">' +
+    '<div style="width:54px;font-size:11px;color:#374151;text-align:right;flex-shrink:0">' + label + '</div>' +
+    '<div style="flex:1;background:#e5e7eb;border-radius:4px;height:18px;overflow:hidden">' +
+      '<div style="width:'+val+'%;background:'+bg+';height:100%;border-radius:4px;min-width:'+(val>0?3:0)+'px"></div>' +
+    '</div>' +
+    '<div style="width:34px;font-size:11px;font-weight:700;color:#111827;text-align:right">' + val + '%</div>' +
+  '</div>';
+}
+function section(title, content) {
+  return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px">' +
+    '<div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">' + title + '</div>' +
+    content +
+  '</div>';
+}
+
+async function seedDash(triggerBtn) {
+  if (triggerBtn) { triggerBtn.textContent = '⏳ Seeding…'; triggerBtn.disabled = true; }
+  try {
+    var db2 = await openDB();
+    var now = Date.now();
+    var SEED = [
+      {stu:'Ahmad Raza',   sub:'math',    grade:'Grade 5', c:8, t:10, h:1},
+      {stu:'Fatima Malik', sub:'math',    grade:'Grade 5', c:9, t:10, h:0},
+      {stu:'Hassan Khan',  sub:'math',    grade:'Grade 4', c:7, t:10, h:2},
+      {stu:'Zainab Ali',   sub:'math',    grade:'Grade 4', c:8, t:10, h:1},
+      {stu:'Ali Hussain',  sub:'math',    grade:'Grade 3', c:6, t:10, h:3},
+      {stu:'Sara Qureshi', sub:'math',    grade:'Grade 3', c:9, t:10, h:0},
+      {stu:'Omar Sheikh',  sub:'math',    grade:'Grade 5', c:3, t:10, h:4},
+      {stu:'Ahmad Raza',   sub:'urdu',    grade:'Grade 5', c:7, t:10, h:2},
+      {stu:'Ayesha Bibi',  sub:'urdu',    grade:'Grade 5', c:8, t:10, h:1},
+      {stu:'Fatima Malik', sub:'urdu',    grade:'Grade 4', c:6, t:10, h:3},
+      {stu:'Hassan Khan',  sub:'urdu',    grade:'Grade 4', c:7, t:10, h:2},
+      {stu:'Zainab Ali',   sub:'urdu',    grade:'Grade 3', c:3, t:10, h:5},
+      {stu:'Ali Hussain',  sub:'urdu',    grade:'Grade 3', c:8, t:10, h:0},
+      {stu:'Sara Qureshi', sub:'english', grade:'Grade 5', c:8, t:10, h:1},
+      {stu:'Omar Sheikh',  sub:'english', grade:'Grade 5', c:7, t:10, h:2},
+      {stu:'Ayesha Bibi',  sub:'english', grade:'Grade 4', c:9, t:10, h:0},
+      {stu:'Ahmad Raza',   sub:'english', grade:'Grade 4', c:7, t:10, h:2},
+      {stu:'Fatima Malik', sub:'english', grade:'Grade 3', c:4, t:10, h:4},
+      {stu:'Hassan Khan',  sub:'english', grade:'Grade 3', c:8, t:10, h:1},
+      {stu:'Zainab Ali',   sub:'english', grade:'Grade 5', c:8, t:10, h:0},
+    ];
+    for (var i = 0; i < SEED.length; i++) {
+      var s = SEED[i];
+      var qs = [];
+      for (var j = 0; j < s.t; j++) {
+        var isCorrect = j < s.c;
+        qs.push({ qId: 'q'+j, correct: isCorrect, timeMs: 4000+Math.random()*8000,
+          interventionFired: j < s.h, postInterventionCorrect: j < s.h ? isCorrect : null });
+      }
+      var sess = { sessionId: 'demo_'+i+'_'+now, studentId: 'demo_'+s.stu.replace(/ /g,'_'),
+        studentName: s.stu, grade: s.grade, subject: s.sub, schoolCode: 'DEMO',
+        startTime: new Date(now - (20-i)*86400000).toISOString(),
+        endTime:   new Date(now - (20-i)*86400000 + 600000).toISOString(),
+        questions: qs, synced: false };
+      await new Promise(function(res){
+        var tx = db2.transaction('sessions','readwrite');
+        tx.objectStore('sessions').put(sess);
+        tx.oncomplete = res;
+      });
+    }
+    loadDash();
+  } catch(e) {
+    console.error('[seedDash]', e);
+    var b = document.getElementById('dash-body');
+    if (b) b.innerHTML = '<div style="color:red;padding:16px">Seed error: '+e.message+'</div><button onclick="loadDash()" style="width:100%;padding:11px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">↻ Try again</button>';
+  }
+}
+
+async function clearDashData() {
+  try {
+    var db2 = await openDB();
+    var tx = db2.transaction('sessions','readwrite');
+    var store = tx.objectStore('sessions');
+    var rq = store.getAllKeys();
+    rq.onsuccess = function() {
+      rq.result.forEach(function(k){ if(String(k).startsWith('demo_')) store.delete(k); });
+      tx.oncomplete = function(){ loadDash(); };
+    };
+  } catch(e) { alert('Clear error: ' + e.message); }
+}
+
 </script>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
@@ -5125,276 +5318,8 @@ function _renderBarChart(containerId, bars, opts) {
   }
 }
 
-/* ══════════════════════════════════════════════════════════════
-   DASHBOARD — complete rebuild v13.1
-   Single entry point: loadDash()
-   Renders into #dash-body — no other DOM IDs needed
-   ══════════════════════════════════════════════════════════════ */
+/* Dashboard functions moved to first script block — see above */
 
-// keep old alias so any other call sites still work
-function loadAdminDataDash() { loadDash(); }
-
-async function loadDash() {
-  const body   = document.getElementById('dash-body');
-  const status = document.getElementById('dash-status');
-  const btn    = document.getElementById('dash-refresh-btn');
-  if (!body) return;
-
-  // Show spinner
-  body.innerHTML = '<div style="text-align:center;padding:40px 16px;color:#6b7280;font-size:14px">🔄 Loading…</div>';
-  if (status) status.textContent = 'Loading…';
-  if (btn)    btn.disabled = true;
-
-  try {
-    /* 1 — open IDB */
-    const db = await openDB();
-
-    /* 2 — read sessions store (4s timeout in case IDB hangs) */
-    const sessions = await new Promise((res, rej) => {
-      const timer = setTimeout(() => res([]), 4000); // safety timeout
-      try {
-        const tx = db.transaction('sessions', 'readonly');
-        const rq = tx.objectStore('sessions').getAll();
-        rq.onsuccess = () => { clearTimeout(timer); res(rq.result || []); };
-        rq.onerror   = () => { clearTimeout(timer); rej(rq.error); };
-      } catch(e) { clearTimeout(timer); res([]); }   // store may not exist yet
-    });
-
-    if (status) status.textContent = 'Updated ' + new Date().toLocaleTimeString();
-    if (btn)    btn.disabled = false;
-
-    /* 3 — empty state */
-    if (!sessions.length) {
-      body.innerHTML = `
-        <div style="text-align:center;padding:32px 16px 20px">
-          <div style="font-size:40px;margin-bottom:8px">📭</div>
-          <div style="font-size:15px;font-weight:700;color:#111827;margin-bottom:6px">No sessions yet</div>
-          <div style="font-size:13px;color:#6b7280;margin-bottom:20px">
-            Run a student assessment, or load sample data to preview the dashboard.
-          </div>
-          <button onclick="seedDash(this)"
-            style="width:100%;padding:12px;background:#1d4ed8;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">
-            📥 Load Sample Data
-          </button>
-        </div>`;
-      return;
-    }
-
-    /* 4 — compute KPIs */
-    const allQ    = sessions.flatMap(s => s.questions || []);
-    const totQ    = allQ.length;
-    const avgPct  = totQ ? Math.round(allQ.filter(q=>q.correct).length / totQ * 100) : 0;
-    const hints   = allQ.filter(q=>q.interventionFired).length;
-    const studs   = new Set(sessions.map(s=>s.studentId).filter(Boolean)).size;
-    const pending = sessions.filter(s=>!s.synced).length;
-
-    const atRisk  = sessions.filter(s => {
-      const qs = s.questions || [];
-      return qs.length && (qs.filter(q=>q.correct).length / qs.length) < 0.5;
-    });
-
-    /* 5 — subject averages */
-    const SUBJS = [
-      {key:'math',    label:'Math',    bg:'#3b82f6'},
-      {key:'urdu',    label:'Urdu',    bg:'#10b981'},
-      {key:'english', label:'English', bg:'#f59e0b'},
-    ];
-    const subjRows = SUBJS.map(m => {
-      const qs  = sessions.filter(s=>s.subject===m.key).flatMap(s=>s.questions||[]);
-      const avg = qs.length ? Math.round(qs.filter(q=>q.correct).length/qs.length*100) : 0;
-      return { label: m.label, val: avg, bg: m.bg };
-    });
-
-    /* 6 — grade averages */
-    const gradeOrder = ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8'];
-    const gradeRows  = [...new Set(sessions.map(s=>s.grade).filter(Boolean))]
-      .sort((a,b) => gradeOrder.indexOf(a)-gradeOrder.indexOf(b))
-      .map(g => {
-        const qs  = sessions.filter(s=>s.grade===g).flatMap(s=>s.questions||[]);
-        const avg = qs.length ? Math.round(qs.filter(q=>q.correct).length/qs.length*100) : 0;
-        return { label: g.replace('Grade ','Gr '), val: avg, bg: '#6366f1' };
-      });
-
-    /* 7 — score distribution */
-    const bkts = Array(10).fill(0);
-    sessions.forEach(s => {
-      const qs = s.questions || [];
-      if (!qs.length) return;
-      const p = Math.round(qs.filter(q=>q.correct).length/qs.length*100);
-      bkts[Math.min(Math.floor(p/10), 9)]++;
-    });
-    const bktMax = Math.max(...bkts, 1);
-    const bktColors = ['#f87171','#f87171','#f87171','#f87171','#f87171','#fb923c','#fb923c','#4ade80','#4ade80','#4ade80'];
-
-    /* ── helpers ── */
-    function kpi(n, label, color) {
-      return `<div style="background:#f9fafb;border-radius:10px;padding:10px;text-align:center;border:1px solid #e5e7eb">
-        <div style="font-size:1.5rem;font-weight:800;color:${color}">${n}</div>
-        <div style="font-size:10px;color:#6b7280;margin-top:2px">${label}</div>
-      </div>`;
-    }
-
-    function hbar(rows) {
-      return rows.map(r => {
-        const w = r.val;
-        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-          <div style="width:54px;font-size:11px;color:#374151;text-align:right;flex-shrink:0">${r.label}</div>
-          <div style="flex:1;background:#e5e7eb;border-radius:4px;height:18px;overflow:hidden">
-            <div style="width:${w}%;background:${r.bg};height:100%;border-radius:4px;min-width:${w>0?3:0}px;transition:width .4s"></div>
-          </div>
-          <div style="width:34px;font-size:11px;font-weight:700;color:#111827;text-align:right">${r.val}%</div>
-        </div>`;
-      }).join('');
-    }
-
-    function vbar(bkts, max, colors) {
-      return `<div style="display:flex;align-items:flex-end;gap:2px;height:80px;padding-bottom:20px;position:relative">` +
-        bkts.map((n,i) => {
-          const h = Math.round(n/max*100);
-          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative">
-            ${n ? `<div style="position:absolute;top:-14px;font-size:8px;color:#6b7280;font-weight:600">${n}</div>` : ''}
-            <div style="width:100%;height:${h||1}%;background:${colors[i]};border-radius:2px 2px 0 0;align-self:flex-end;min-height:${n?3:1}px"></div>
-            <div style="position:absolute;bottom:-16px;font-size:7px;color:#9ca3af;text-align:center;width:100%">${i*10}%</div>
-          </div>`;
-        }).join('') + `</div>`;
-    }
-
-    function section(title, content) {
-      return `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px">
-        <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">${title}</div>
-        ${content}
-      </div>`;
-    }
-
-    /* 8 — at-risk rows */
-    const riskHtml = atRisk.length
-      ? atRisk.slice(0,10).map(s => {
-          const qs  = s.questions||[];
-          const pct = qs.length ? Math.round(qs.filter(q=>q.correct).length/qs.length*100) : 0;
-          const nm  = s.studentName || s.studentId || '—';
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #e5e7eb;font-size:12px">
-            <span style="font-weight:700;flex:1;color:#111827">${nm}</span>
-            <span style="color:#9ca3af;margin:0 8px">${s.grade||''} · ${s.subject||''}</span>
-            <span style="color:#dc2626;font-weight:800;min-width:36px;text-align:right">${pct}%</span>
-          </div>`;
-        }).join('') + (atRisk.length>10 ? `<div style="font-size:11px;color:#9ca3af;text-align:center;padding-top:6px">+${atRisk.length-10} more</div>` : '')
-      : '<div style="color:#9ca3af;font-size:12px;text-align:center;padding:8px">No at-risk students 🎉</div>';
-
-    /* 9 — assemble and render */
-    body.innerHTML = `
-      <!-- KPI grid -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
-        ${kpi(sessions.length, 'Sessions',   '#16a34a')}
-        ${kpi(avgPct+'%',      'Avg Score',  '#2563eb')}
-        ${kpi(atRisk.length,   'At Risk',    '#dc2626')}
-        ${kpi(hints,           'AI Hints',   '#d97706')}
-        ${kpi(studs,           'Students',   '#7c3aed')}
-        ${kpi(pending,         'Unsynced',   '#d97706')}
-      </div>
-
-      ${section('📚 Avg Score by Subject', hbar(subjRows))}
-      ${gradeRows.length ? section('🏫 Score by Grade', hbar(gradeRows)) : ''}
-      ${section('📊 Score Distribution', vbar(bkts, bktMax, bktColors))}
-      ${section('⚠ Students Below 50%', riskHtml)}
-
-      <!-- actions -->
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
-        <button class="btn btn-primary"  style="width:100%;font-size:13px" onclick="syncPendingSessions()">🔄 Sync to Google Sheets</button>
-        <button class="btn btn-ghost"    style="width:100%;font-size:13px" onclick="exportAllData()">💾 Export JSON</button>
-        <button onclick="clearDashData()" style="width:100%;font-size:12px;padding:9px;background:none;border:1px solid #fca5a5;border-radius:8px;color:#dc2626;cursor:pointer">🗑 Clear Demo Data</button>
-      </div>`;
-
-  } catch(err) {
-    console.error('[loadDash] error:', err);
-    if (btn) btn.disabled = false;
-    if (status) status.textContent = 'Error — see below';
-    const body2 = document.getElementById('dash-body');
-    if (body2) body2.innerHTML = `
-      <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:16px;margin-bottom:12px">
-        <div style="font-weight:700;color:#dc2626;font-size:13px;margin-bottom:4px">Dashboard error</div>
-        <div style="font-size:12px;color:#7f1d1d;word-break:break-all">${err.message || err}</div>
-      </div>
-      <button onclick="loadDash()" style="width:100%;padding:11px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">↻ Try again</button>`;
-  }
-}
-
-/* ── Seed 20 realistic demo sessions ───────────────────────────────────── */
-async function seedDash(triggerBtn) {
-  if (triggerBtn) { triggerBtn.textContent = '⏳ Seeding…'; triggerBtn.disabled = true; }
-  const body = document.getElementById('dash-body');
-  try {
-    const db  = await openDB();
-    const now = Date.now();
-    const SEED = [
-      {stu:'Ahmad Raza',   sub:'math',    grade:'Grade 5', c:8, t:10, h:1},
-      {stu:'Fatima Malik', sub:'math',    grade:'Grade 5', c:9, t:10, h:0},
-      {stu:'Hassan Khan',  sub:'math',    grade:'Grade 4', c:7, t:10, h:2},
-      {stu:'Zainab Ali',   sub:'math',    grade:'Grade 4', c:8, t:10, h:1},
-      {stu:'Ali Hussain',  sub:'math',    grade:'Grade 3', c:6, t:10, h:3},
-      {stu:'Sara Qureshi', sub:'math',    grade:'Grade 3', c:9, t:10, h:0},
-      {stu:'Omar Sheikh',  sub:'math',    grade:'Grade 5', c:3, t:10, h:4}, // at-risk
-      {stu:'Ahmad Raza',   sub:'urdu',    grade:'Grade 5', c:7, t:10, h:2},
-      {stu:'Ayesha Bibi',  sub:'urdu',    grade:'Grade 5', c:8, t:10, h:1},
-      {stu:'Fatima Malik', sub:'urdu',    grade:'Grade 4', c:6, t:10, h:3},
-      {stu:'Hassan Khan',  sub:'urdu',    grade:'Grade 4', c:7, t:10, h:2},
-      {stu:'Zainab Ali',   sub:'urdu',    grade:'Grade 3', c:3, t:10, h:5}, // at-risk
-      {stu:'Ali Hussain',  sub:'urdu',    grade:'Grade 3', c:8, t:10, h:0},
-      {stu:'Sara Qureshi', sub:'english', grade:'Grade 5', c:8, t:10, h:1},
-      {stu:'Omar Sheikh',  sub:'english', grade:'Grade 5', c:7, t:10, h:2},
-      {stu:'Ayesha Bibi',  sub:'english', grade:'Grade 4', c:9, t:10, h:0},
-      {stu:'Ahmad Raza',   sub:'english', grade:'Grade 4', c:7, t:10, h:2},
-      {stu:'Fatima Malik', sub:'english', grade:'Grade 3', c:4, t:10, h:4}, // at-risk
-      {stu:'Hassan Khan',  sub:'english', grade:'Grade 3', c:8, t:10, h:1},
-      {stu:'Zainab Ali',   sub:'english', grade:'Grade 5', c:8, t:10, h:0},
-    ];
-    for (let i = 0; i < SEED.length; i++) {
-      const s = SEED[i];
-      const questions = Array.from({length: s.t}, (_,q) => ({
-        qId: `demo_q${i}_${q}`,
-        correct: q < s.c,
-        interventionFired: q >= s.c && q < s.c + s.h
-      }));
-      await new Promise((res, rej) => {
-        const tx = db.transaction('sessions','readwrite');
-        tx.objectStore('sessions').put({
-          sessionId:   `demo_${i}_${now}`,
-          studentId:   'stu_' + s.stu.toLowerCase().replace(/\s+/g,'_'),
-          studentName: s.stu,
-          subject:     s.sub,
-          grade:       s.grade,
-          schoolCode:  'IMS001',
-          startTime:   new Date(now-(SEED.length-i)*900000).toISOString(),
-          endTime:     new Date(now-(SEED.length-i)*900000+600000).toISOString(),
-          questions,
-          synced: false
-        });
-        tx.oncomplete = res;
-        tx.onerror    = () => rej(tx.error);
-      });
-    }
-    loadDash();
-  } catch(err) {
-    console.error('[v13] seedDash error', err);
-    if (body) body.innerHTML = `<div style="color:#dc2626;font-size:13px;padding:16px">Seed error: ${err.message}</div>
-      <button onclick="loadDash()" style="width:100%;padding:11px;background:#1d4ed8;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">↻ Reload</button>`;
-  }
-}
-
-/* ── Clear all demo sessions ──────────────────────────────────────────── */
-async function clearDashData() {
-  if (!confirm('Delete all demo sessions from this device?')) return;
-  try {
-    const db = await openDB();
-    const tx = db.transaction('sessions','readwrite');
-    const store = tx.objectStore('sessions');
-    const rq = store.getAllKeys();
-    rq.onsuccess = async () => {
-      const demoKeys = rq.result.filter(k => String(k).startsWith('demo_'));
-      for (const k of demoKeys) store.delete(k);
-      tx.oncomplete = () => loadDash();
-    };
-  } catch(e) { alert('Clear error: ' + e.message); }
-}
 
 /* ── Auto-load when dashboard screen becomes active ─────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
