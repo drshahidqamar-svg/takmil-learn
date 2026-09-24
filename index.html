@@ -455,15 +455,16 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
       <div style="margin-top:14px">
         <div class="row jbet" style="font-size:11.5px;opacity:.75;margin-bottom:4px">
-          <span>Progress</span><span>3 / 10</span>
+          <span>Progress</span><span id="today-card-progress">0 / 10</span>
         </div>
         <div style="height:4px;background:rgba(255,255,255,.2);border-radius:2px">
-          <div style="height:100%;background:white;border-radius:2px;width:30%"></div>
+          <div style="height:100%;background:white;border-radius:2px" id="today-card-bar" style="width:0%"></div>
         </div>
       </div>
       <button class="btn" onclick="event.stopPropagation();startAssessment('math')"
+        id="today-card-btn"
         style="margin-top:14px;background:rgba(255,255,255,.14);color:white;border:1.5px solid rgba(255,255,255,.35);width:auto;padding:8px 18px;font-size:13.5px">
-        Resume →
+        Start →
       </button>
     </div>
 
@@ -1981,6 +1982,7 @@ function advanceUrdu() {
   if (perfState.qIndex >= perfState.queue.length) {
     // Assessment complete
     nav('s-student');
+    renderStudentHome(currentStudentId);
     return;
   }
   renderCurrentQ();
@@ -1990,13 +1992,14 @@ function skipQ() {
   // Mark skipped (counts as wrong for SM-2, no penalty shown to student)
   const q = perfState._currentQ;
   if (q) {
-    try { saveResponse(q.id, perfState.subject, null, false); } catch(e) {}
+    try { saveResponse(perfState.subject, q.id, null, false); } catch(e) {}
     perfState.sessionTotal++;
     perfState.consecutiveWrong++;
   }
   perfState.qIndex++;
   if (perfState.qIndex >= perfState.queue.length) {
     nav('s-student');
+    renderStudentHome(currentStudentId);
     return;
   }
   // Reset feedback + options before rendering next
@@ -3846,7 +3849,7 @@ function pickEng(el, correct, letter) {
 
 function skipEngQ() {
   perfState.qIndex++;
-  if (perfState.qIndex >= perfState.queue.length) { nav('s-student'); return; }
+  if (perfState.qIndex >= perfState.queue.length) { nav('s-student'); renderStudentHome(currentStudentId); return; }
   renderCurrentQ();
 }
 
@@ -3907,6 +3910,7 @@ function nextQuestion() {
     const toast = document.getElementById('sync-toast');
     if (toast) toast.textContent = `✓ Session done · ${perfState.sessionCorrect}/${perfState.sessionTotal} correct`;
     nav('s-student');
+    renderStudentHome(currentStudentId);
     return;
   }
   renderCurrentQ();
@@ -3921,7 +3925,7 @@ function nextQuestion() {
 const DB_NAME    = 'takmil-learn';
 const DB_VERSION = 2;
 let   db         = null;
-let   currentStudentId = 'demo-student';   // set when a student is chosen from the picker
+let   currentStudentId = (() => { try { return sessionStorage.getItem('takmil-sid') || 'demo-student'; } catch(e) { return 'demo-student'; } })();
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -3954,22 +3958,43 @@ function openDB() {
 }
 
 async function saveResponse(subject, qId, answer, correct) {
+  const record = {
+    studentId: currentStudentId,
+    subject, qId, answer, correct,
+    ts:     Date.now(),
+    synced: false
+  };
+
+  // --- Primary: save to IDB responses (separate tx so sync_queue errors don't block it) ---
   try {
-    const d      = await openDB();
-    const record = {
-      studentId: currentStudentId,
-      subject, qId, answer, correct,
-      ts:     Date.now(),
-      synced: false
-    };
-    const tx = d.transaction(['responses','sync_queue'], 'readwrite');
-    tx.objectStore('responses').add(record);
+    const d  = await openDB();
+    await new Promise((res, rej) => {
+      const tx = d.transaction('responses', 'readwrite');
+      tx.objectStore('responses').add(record);
+      tx.oncomplete = res;
+      tx.onerror    = e => { console.warn('IDB responses write error', e.target.error); res(); };
+    });
+  } catch (err) {
+    console.warn('saveResponse IDB failed', err);
+  }
+
+  // --- Backup: also persist to localStorage for resilience ---
+  try {
+    const key  = 'takmil-responses-' + currentStudentId;
+    const prev = JSON.parse(localStorage.getItem(key) || '[]');
+    prev.push(record);
+    // keep last 500 per student
+    if (prev.length > 500) prev.splice(0, prev.length - 500);
+    localStorage.setItem(key, JSON.stringify(prev));
+  } catch(e) {}
+
+  // --- Sync queue (best-effort, separate) ---
+  try {
+    const d  = await openDB();
+    const tx = d.transaction('sync_queue', 'readwrite');
     tx.objectStore('sync_queue').add({ type:'response', payload: record, ts: Date.now() });
     tx.oncomplete = () => refreshPendingCount();
-    tx.onerror    = e  => console.warn('IDB write error', e.target.error);
-  } catch (err) {
-    console.warn('saveResponse failed (IDB unavailable)', err);
-  }
+  } catch(e) {}
 }
 
 async function countPending() {
@@ -4356,6 +4381,7 @@ function _loadRosterForPicker() {
 
 function selectStudent(name) {
   currentStudentId = name;
+  try { sessionStorage.setItem('takmil-sid', name); } catch(e) {}
   nav('s-student');
   renderStudentHome(name);
 }
@@ -4384,7 +4410,7 @@ async function renderStudentHome(name) {
   const gradeBadge = document.getElementById('s-grade-badge');
   if (gradeBadge) gradeBadge.textContent = grade ? 'Grade ' + grade.replace(/\D/g,'') || grade : 'Student';
 
-  // Pull responses from IDB for this student
+  // Pull responses from IDB + localStorage backup for this student
   let responses = [];
   try {
     const db = await openDB();
@@ -4395,6 +4421,20 @@ async function renderStudentHome(name) {
       req.onerror   = () => resolve([]);
     });
     responses = all.filter(r => (r.studentId || '').toLowerCase() === name.toLowerCase());
+  } catch(e) {}
+  // localStorage fallback / merge
+  try {
+    const raw = localStorage.getItem('takmil-responses-' + name);
+    if (raw) {
+      const lsRows = JSON.parse(raw).filter(r => (r.studentId || '').toLowerCase() === name.toLowerCase());
+      if (!responses.length && lsRows.length) {
+        responses = lsRows;
+      } else if (lsRows.length) {
+        const seen = new Set(responses.map(r => r.ts + '|' + (r.qId || '')));
+        const extra = lsRows.filter(r => !seen.has(r.ts + '|' + (r.qId || '')));
+        if (extra.length) responses = [...responses, ...extra];
+      }
+    }
   } catch(e) {}
 
   // Compute mastery per subject
@@ -4443,6 +4483,21 @@ async function renderStudentHome(name) {
       (subjectMastery(last.subject) >= 70 ? 'Excellent! شاباش 🎉' :
        subjectMastery(last.subject) >= 50 ? 'Good · اچھا' : 'Keep going · جاری رکھیں'));
   }
+
+  // Today's Assessment card — show real progress from today's math responses
+  const todayMathTotal = (QBANK['math'] || []).length || 10;
+  const todayStr = now.toDateString();
+  const todayMathDone = responses.filter(r =>
+    r.subject === 'math' &&
+    r.ts && new Date(r.ts).toDateString() === todayStr
+  ).length;
+  const todayPct = Math.min(100, Math.round(todayMathDone / todayMathTotal * 100));
+  const progEl = document.getElementById('today-card-progress');
+  const barEl  = document.getElementById('today-card-bar');
+  const btnEl  = document.getElementById('today-card-btn');
+  if (progEl) progEl.textContent = todayMathDone + ' / ' + todayMathTotal;
+  if (barEl)  barEl.style.width  = todayPct + '%';
+  if (btnEl)  btnEl.textContent  = todayMathDone > 0 ? 'Resume →' : 'Start →';
 }
 
 function bnavSwitch(tab) {
@@ -4884,12 +4939,12 @@ async function _getAllMastery() {
 }
 
 async function _getMyResponses() {
+  let idbRows = [];
   try {
     const d = await openDB();
-    return await new Promise(resolve => {
+    idbRows = await new Promise(resolve => {
       const tx  = d.transaction('responses', 'readonly');
       const st  = tx.objectStore('responses');
-      // Try index first; fall back to getAll if index missing
       if (st.indexNames.contains('studentId')) {
         const req = st.index('studentId').getAll(currentStudentId);
         req.onsuccess = () => resolve(req.result || []);
@@ -4900,7 +4955,19 @@ async function _getMyResponses() {
         req.onerror   = () => resolve([]);
       }
     });
-  } catch { return []; }
+  } catch(e) { idbRows = []; }
+  // Merge localStorage backup — deduplicate by (subject+qId+ts)
+  let lsRows = [];
+  try {
+    const raw = localStorage.getItem('takmil-responses-' + currentStudentId);
+    if (raw) lsRows = JSON.parse(raw);
+  } catch(e) {}
+  if (!idbRows.length && lsRows.length) return lsRows;
+  if (!lsRows.length) return idbRows;
+  // Both have rows — merge, deduplicate by ts+qId key
+  const seen = new Set(idbRows.map(r => r.ts + '|' + r.qId));
+  const extra = lsRows.filter(r => !seen.has(r.ts + '|' + r.qId));
+  return [...idbRows, ...extra];
 }
 
 function _calcStreak(dayStrings) {
