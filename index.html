@@ -589,8 +589,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     <div>
       <div class="pbar"><div class="pbar-fill" style="width:40%;background:var(--primary)"></div></div>
       <div class="row jbet" style="margin-top:4px">
-        <span class="fs12 c3">3 correct so far</span>
-        <span class="fs12 c3">40% complete</span>
+        <span class="fs12 c3" id="math-correct-lbl">اب تک 3 درست</span>
+        <span class="fs12 c3" id="math-pct-lbl">40% مکمل</span>
       </div>
     </div>
 
@@ -605,7 +605,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
       <!-- Dot grid visual -->
       <div id="dot-grid" style="background:var(--surface-2);border-radius:11px;padding:14px;margin-bottom:14px;display:flex;justify-content:center"></div>
-      <div class="fs12 c3" style="text-align:center;margin-top:-8px;margin-bottom:12px">7 rows × 8 = ? · 7 قطاریں × 8</div>
+      <div class="fs12 c3" style="text-align:center;margin-top:-8px;margin-bottom:12px;direction:rtl">7 قطاریں × 8 = ؟</div>
       <div class="nunito fw8" style="font-size:28px;text-align:center">7 × 8 = ?</div>
       <div class="fs13 c3" style="text-align:center;margin-top:2px">سات ضرب آٹھ برابر کیا ہے؟</div>
     </div>
@@ -621,10 +621,10 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     <!-- Hint row -->
     <div class="row gap10" id="hint-row">
       <button class="btn btn-ghost" style="flex:1;font-size:13px;padding:10px 14px" onclick="nav('s-intervention')">
-        🤖 AI Hint
+        🤖 اشارہ
       </button>
       <button class="btn btn-ghost" style="flex:1;font-size:13px;padding:10px 14px" onclick="skipQ()">
-        Skip
+        چھوڑیں
       </button>
     </div>
 
@@ -632,18 +632,18 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     <div id="fb" hidden>
       <div id="fb-ok" hidden class="card" style="background:var(--green-bg);border:1.5px solid var(--green)">
         <div class="row gap12"><div style="font-size:28px">✅</div>
-          <div><div class="fw7" style="color:var(--green)">Correct! شاباش! 🎉</div>
-          <div class="fs13 c2">7 × 8 = 56 · seven groups of eight</div></div>
+          <div><div class="fw7" style="color:var(--green)">شاباش! 🎉</div>
+          <div class="fs13 c2" id="fb-ok-text" style="direction:rtl">بہت اچھے!</div></div>
         </div>
-        <button class="btn btn-primary" style="margin-top:12px" onclick="nextQuestion()">Next Question →</button>
+        <button class="btn btn-primary" style="margin-top:12px" onclick="nextQuestion()">اگلا سوال ←</button>
       </div>
       <div id="fb-no" hidden class="card" style="background:var(--red-bg);border:1.5px solid var(--red)">
         <div class="row gap12"><div style="font-size:28px">❌</div>
-          <div><div class="fw7" style="color:var(--red)">Not quite · دوبارہ کوشش</div>
-          <div class="fs13 c2">The answer is 56. Let me explain.</div></div>
+          <div><div class="fw7" style="color:var(--red)">دوبارہ کوشش</div>
+          <div class="fs13 c2" id="fb-no-text" style="direction:rtl">جواب ہے 56۔</div></div>
         </div>
         <button class="btn btn-primary" style="margin-top:12px" onclick="nav('s-intervention')">
-          🤖 Get AI Explanation
+          🤖 وضاحت دیکھیں
         </button>
       </div>
     </div>
@@ -1828,10 +1828,12 @@ function pick(el, correct, letter) {
     perfState.consecutiveWrong++;
   }
 
-  // Update progress bar label
+  // Update progress bar labels (Urdu)
   const pct = Math.round(perfState.sessionCorrect / Math.max(perfState.sessionTotal, 1) * 100);
-  const lbl = document.querySelector('#s-assess .fs12.c3');
-  if (lbl) lbl.textContent = `${perfState.sessionCorrect} correct so far`;
+  const correctLbl = document.getElementById('math-correct-lbl');
+  if (correctLbl) correctLbl.textContent = `اب تک ${perfState.sessionCorrect} درست`;
+  const pctLbl = document.getElementById('math-pct-lbl');
+  if (pctLbl) pctLbl.textContent = `${pct}% مکمل`;
 
   // Lock all
   document.querySelectorAll('#opts .opt').forEach(o => o.classList.add('locked'));
@@ -1839,9 +1841,9 @@ function pick(el, correct, letter) {
   if (correct) {
     el.classList.add('correct');
     document.getElementById('fb-ok').hidden = false;
-    // Update feedback text with current question answer
-    const okText = document.querySelector('#fb-ok .fs13.c2');
-    if (okText && q) okText.textContent = q.text.replace('?', '= ') + (q.options.find(o=>o.correct)?.text||'') + ' · ' + q.explain.replace(/<[^>]+>/g,'');
+    // Update feedback text (Urdu)
+    const okText = document.getElementById('fb-ok-text');
+    if (okText && q) okText.textContent = q.textUrdu ? q.textUrdu.replace('؟','= ') + (q.options.find(o=>o.correct)?.text||'') : 'بہت اچھے!';
   } else {
     el.classList.add('wrong');
     // Highlight correct option
@@ -1855,8 +1857,10 @@ function pick(el, correct, letter) {
       }
     });
     document.getElementById('fb-no').hidden = false;
-    const noText = document.querySelector('#fb-no .fs13.c2');
-    if (noText && q) noText.textContent = 'The answer is ' + (q.options.find(o=>o.correct)?.text||'') + '. ' + q.hint;
+    const noText = document.getElementById('fb-no-text');
+    const correctAns = q ? (q.options.find(o=>o.correct)?.text||'') : '';
+    const hint = q ? (q.hintUrdu || '') : '';
+    if (noText) noText.textContent = hint ? `جواب ہے ${correctAns}۔ ${hint}` : `صحیح جواب ${correctAns} ہے۔`;
   }
 
   document.getElementById('fb').hidden = false;
@@ -3507,9 +3511,14 @@ function renderMathQ(q) {
   const qLabel = document.querySelector('#s-assess .badge.b-pri');
   if (qLabel) qLabel.textContent = `Q ${perfState.qIndex+1} / ${perfState.queue.length}`;
 
-  // Skill badge
+  // Skill badge (Urdu only)
   const sbadge = document.querySelector('#s-assess .badge.b-blue');
-  if (sbadge) sbadge.textContent = `${q.skill} · ${q.skillUrdu}`;
+  if (sbadge) sbadge.textContent = q.skillUrdu || q.skill;
+  // Progress labels (Urdu)
+  const mCorrectLbl = document.getElementById('math-correct-lbl');
+  if (mCorrectLbl) mCorrectLbl.textContent = `اب تک ${perfState.sessionCorrect} درست`;
+  const mPctLbl = document.getElementById('math-pct-lbl');
+  if (mPctLbl) mPctLbl.textContent = `${pct}% مکمل`;
 
   // Question text
   const qText = document.querySelector('#s-assess .nunito.fw8[style*="28px"]');
@@ -3532,7 +3541,7 @@ function renderMathQ(q) {
       }
       grid.appendChild(wrap);
       const sub = document.querySelector('#s-assess .fs12.c3[style*="center"]');
-      if (sub) sub.textContent = `${q.rows} rows × ${q.cols} = ? · ${q.rows} قطاریں × ${q.cols}`;
+      if (sub) sub.textContent = `${q.rows} قطاریں × ${q.cols} = ؟`;
     }
   }
 
