@@ -1867,9 +1867,9 @@ function pick(el, correct, letter) {
   document.getElementById('hint-row').hidden = true;
   // Speak feedback
   if (correct) {
-    speak('Correct! Well done!', 'شاباش! بہت اچھے!');
+    speak('', 'شاباش! بہت اچھے!');
   } else {
-    speak('Not quite. Try again.', 'دوبارہ کوشش کریں۔');
+    speak('', 'دوبارہ کوشش کریں۔');
   }
   setTimeout(() => {
     document.getElementById('fb').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -1954,9 +1954,9 @@ function pickUrdu(el, correct, letter) {
     if (fbNo) {
       fbNo.hidden = false;
       const cq2 = perfState._currentQ;
-      if (cq2 && cq2.hint) {
+      if (cq2 && (cq2.hintUrdu || cq2.hint)) {
         const hintEl = fbNo.querySelector('.fs13');
-        if (hintEl) hintEl.textContent = 'Hint: ' + cq2.hint;
+        if (hintEl) hintEl.textContent = cq2.hintUrdu || cq2.hint;
       }
     }
   }
@@ -1964,11 +1964,11 @@ function pickUrdu(el, correct, letter) {
   if (fb) fb.hidden = false;
   const hintRow = document.getElementById('u-hint-row');
   if (hintRow) hintRow.hidden = true;
-  // Speak feedback
+  // Speak feedback (Urdu only)
   if (correct) {
-    speak('Correct! Well done!', 'شاباش! بہت اچھے!');
+    speak('', 'شاباش! بہت اچھے!');
   } else {
-    speak('Not quite. Try again.', 'دوبارہ کوشش کریں۔');
+    speak('', 'دوبارہ کوشش کریں۔');
   }
   setTimeout(() => {
     if (fb) fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -3562,8 +3562,8 @@ function renderMathQ(q) {
   resetAssess();
   // Store current question ref for pick()
   perfState._currentQ = q;
-  // Auto-read question aloud
-  setTimeout(() => speak(q.text, q.textUrdu), 400);
+  // Auto-read question aloud (Urdu only)
+  setTimeout(() => speak('', q.textUrdu || q.text), 400);
 }
 
 function renderUrduQ(q) {
@@ -3861,11 +3861,10 @@ function checkIntervention() {
 
 function renderIntervention(q) {
   const bubble = document.querySelector('#s-intervention .bubble .fw7');
-  if (bubble) bubble.textContent = `No worries! Let me explain "${q.skill}".`;
-  // AI tutor speaks when intervention opens
+  if (bubble) bubble.textContent = `فکر نہ کریں! "${q.skillUrdu || q.skill}" سمجھتے ہیں۔`;
+  // AI tutor speaks (Urdu only)
   setTimeout(() => {
-    speak(`No worries! Let me explain ${q.skill}. ${q.explain ? q.explain.replace(/<[^>]+>/g,'') : ''}`,
-          'فکر نہ کریں! میں سمجھاتا ہوں۔');
+    speak('', 'فکر نہ کریں! میں سمجھاتا ہوں۔');
   }, 500);
 
   const concept = document.querySelector('#s-intervention .card .nunito.fw7');
