@@ -623,7 +623,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       <button class="btn btn-ghost" style="flex:1;font-size:13px;padding:10px 14px" onclick="nav('s-intervention')">
         🤖 AI Hint
       </button>
-      <button class="btn btn-ghost" style="flex:1;font-size:13px;padding:10px 14px">
+      <button class="btn btn-ghost" style="flex:1;font-size:13px;padding:10px 14px" onclick="skipQ()">
         Skip
       </button>
     </div>
@@ -1271,7 +1271,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       <button class="btn btn-ghost" style="flex:1;font-size:13px;padding:10px 14px" onclick="nav('s-intervention')">
         🤖 AI Hint
       </button>
-      <button class="btn btn-ghost" style="flex:1;font-size:13px;padding:10px 14px">
+      <button class="btn btn-ghost" style="flex:1;font-size:13px;padding:10px 14px" onclick="skipQ()">
         Skip
       </button>
     </div>
@@ -1979,6 +1979,31 @@ function advanceUrdu() {
     nav('s-student');
     return;
   }
+  renderCurrentQ();
+}
+
+function skipQ() {
+  // Mark skipped (counts as wrong for SM-2, no penalty shown to student)
+  const q = perfState._currentQ;
+  if (q) {
+    try { saveResponse(q.id, perfState.subject, null, false); } catch(e) {}
+    perfState.sessionTotal++;
+    perfState.consecutiveWrong++;
+  }
+  perfState.qIndex++;
+  if (perfState.qIndex >= perfState.queue.length) {
+    nav('s-student');
+    return;
+  }
+  // Reset feedback + options before rendering next
+  ['fb','u-fb'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = true;
+  });
+  document.querySelectorAll('.opt').forEach(o => {
+    o.classList.remove('correct','wrong','disabled');
+    o.disabled = false;
+  });
   renderCurrentQ();
 }
 
