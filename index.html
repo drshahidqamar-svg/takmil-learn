@@ -1101,11 +1101,47 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
     <!-- ANALYTICS PANEL -->
     <div id="admin-panel-analytics" hidden>
-      <div class="nunito fw8" style="font-size:18px;margin-bottom:12px">Analytics · تجزیہ</div>
-      <div class="card" style="text-align:center;padding:32px 16px">
-        <div style="font-size:36px;margin-bottom:8px">📊</div>
-        <div class="fw7 fs14">Coming Soon</div>
-        <div class="fs13 c3" style="margin-top:4px">Detailed analytics and reports will appear here.</div>
+      <div class="row jbet" style="align-items:center;margin-bottom:14px">
+        <div class="nunito fw8" style="font-size:18px">Analytics · تجزیہ</div>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="renderAdminAnalytics()">↻ Refresh</button>
+      </div>
+
+      <!-- Summary stat row -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div class="card card-sm" style="padding:12px">
+          <div class="fs11 c3 fw6" style="text-transform:uppercase;letter-spacing:.06em">Total Responses</div>
+          <div class="nunito fw8" style="font-size:26px;color:var(--primary)" id="an-total-resp">—</div>
+        </div>
+        <div class="card card-sm" style="padding:12px">
+          <div class="fs11 c3 fw6" style="text-transform:uppercase;letter-spacing:.06em">School Avg</div>
+          <div class="nunito fw8" style="font-size:26px;color:var(--green)" id="an-school-avg">—</div>
+        </div>
+        <div class="card card-sm" style="padding:12px">
+          <div class="fs11 c3 fw6" style="text-transform:uppercase;letter-spacing:.06em">Active Today</div>
+          <div class="nunito fw8" style="font-size:26px;color:var(--amber)" id="an-active-today">—</div>
+        </div>
+        <div class="card card-sm" style="padding:12px">
+          <div class="fs11 c3 fw6" style="text-transform:uppercase;letter-spacing:.06em">At Risk (&lt;50%)</div>
+          <div class="nunito fw8" style="font-size:26px;color:var(--red,#DC2626)" id="an-at-risk">—</div>
+        </div>
+      </div>
+
+      <!-- Subject accuracy bars -->
+      <div class="card card-sm" style="padding:14px;margin-bottom:12px">
+        <div class="fw7 fs13" style="margin-bottom:12px">Subject Accuracy · مضمون کی درستگی</div>
+        <div id="an-subject-bars" class="col gap10"></div>
+      </div>
+
+      <!-- 7-day activity sparkline -->
+      <div class="card card-sm" style="padding:14px;margin-bottom:12px">
+        <div class="fw7 fs13" style="margin-bottom:10px">Last 7 Days · گزشتہ 7 دن</div>
+        <div id="an-sparkline-wrap" style="overflow-x:auto"></div>
+      </div>
+
+      <!-- Per-student performance table -->
+      <div class="card card-sm" style="padding:14px">
+        <div class="fw7 fs13" style="margin-bottom:10px">Student Performance · طلباء کی کارکردگی</div>
+        <div id="an-student-table"></div>
       </div>
     </div><!-- /admin-panel-analytics -->
 
@@ -4575,7 +4611,8 @@ function adminTabSwitch(tab) {
     if (panel) panel.hidden = (t !== tab);
     if (btn)   btn.classList.toggle('on', t === tab);
   });
-  if (tab === 'students') renderAdminStudents();
+  if (tab === 'students')  renderAdminStudents();
+  if (tab === 'analytics') renderAdminAnalytics();
 }
 
 async function renderAdminStudents() {
@@ -4620,6 +4657,119 @@ async function renderAdminStudents() {
   });
 
   container.innerHTML = cards.join('');
+}
+
+async function renderAdminAnalytics() {
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const roster = _getRoster();
+  const allResponses = await _getAllResponsesWithLSBackup();
+  const todayStr = new Date().toDateString();
+
+  // ── Summary stats ──────────────────────────────────────────────
+  const totalResp = allResponses.length;
+  const totalCorr = allResponses.filter(r => r.correct).length;
+  const schoolAvg = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
+  const activeToday = new Set(allResponses.filter(r => new Date(r.ts).toDateString() === todayStr).map(r => r.studentId)).size;
+
+  // per-student accuracy
+  const byStudent = {};
+  allResponses.forEach(r => {
+    const nm = (r.studentId || '').toLowerCase();
+    if (!byStudent[nm]) byStudent[nm] = { total:0, correct:0 };
+    byStudent[nm].total++;
+    if (r.correct) byStudent[nm].correct++;
+  });
+  const atRisk = Object.values(byStudent).filter(s => s.total > 0 && Math.round(s.correct/s.total*100) < 50).length;
+
+  setEl('an-total-resp',   totalResp || '0');
+  setEl('an-school-avg',   schoolAvg !== null ? schoolAvg + '%' : '—');
+  setEl('an-active-today', activeToday || '0');
+  setEl('an-at-risk',      atRisk || '0');
+
+  // ── Subject accuracy bars ──────────────────────────────────────
+  const subjects = [
+    { key:'math',    label:'Mathematics · حساب', color:'#16a34a' },
+    { key:'urdu',    label:'Urdu · اردو',         color:'#d97706' },
+    { key:'english', label:'English',              color:'#2563eb' },
+  ];
+  const barsEl = document.getElementById('an-subject-bars');
+  if (barsEl) {
+    barsEl.innerHTML = subjects.map(({ key, label, color }) => {
+      const rows = allResponses.filter(r => r.subject === key);
+      const pct  = rows.length ? Math.round(rows.filter(r => r.correct).length / rows.length * 100) : 0;
+      const cnt  = rows.length;
+      return `<div>
+        <div class="row jbet" style="font-size:12px;margin-bottom:4px">
+          <span class="fw6">${label}</span>
+          <span class="c3">${pct}% · ${cnt} answered</span>
+        </div>
+        <div style="height:10px;background:var(--surface2,#e5e7eb);border-radius:5px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:5px;transition:width .4s"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── 7-day sparkline ────────────────────────────────────────────
+  const sparkWrap = document.getElementById('an-sparkline-wrap');
+  if (sparkWrap) {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0);
+      const dStr = d.toDateString();
+      const label = d.toLocaleDateString('en-US', { weekday:'short' });
+      const count = allResponses.filter(r => r.ts && new Date(r.ts).toDateString() === dStr).length;
+      days.push({ label, count });
+    }
+    const maxCount = Math.max(...days.map(d => d.count), 1);
+    const barW = 32, gap = 8, h = 70;
+    const totalW = days.length * (barW + gap) - gap;
+    const bars = days.map(({ label, count }, i) => {
+      const barH = Math.max(4, Math.round(count / maxCount * h));
+      const x = i * (barW + gap);
+      const isToday = i === 6;
+      return `
+        <rect x="${x}" y="${h - barH}" width="${barW}" height="${barH}"
+              rx="4" fill="${isToday ? '#16a34a' : '#86efac'}" opacity="${count ? 1 : .35}"/>
+        <text x="${x + barW/2}" y="${h + 14}" text-anchor="middle"
+              font-size="10" fill="var(--text3,#6b7280)">${label}</text>
+        ${count ? `<text x="${x + barW/2}" y="${h - barH - 4}" text-anchor="middle"
+              font-size="10" font-weight="700" fill="var(--text2,#374151)">${count}</text>` : ''}`;
+    }).join('');
+    sparkWrap.innerHTML = `<svg viewBox="0 0 ${totalW} ${h + 22}" style="width:100%;max-width:${totalW}px;overflow:visible">${bars}</svg>`;
+  }
+
+  // ── Per-student table ──────────────────────────────────────────
+  const tableEl = document.getElementById('an-student-table');
+  if (tableEl) {
+    if (!roster.length && !allResponses.length) {
+      tableEl.innerHTML = '<div class="fs13 c3" style="text-align:center;padding:16px">No student data yet.</div>';
+    } else {
+      const rows = roster.map(s => {
+        const nm    = typeof s === 'object' ? s.name : s;
+        const grade = (s && s.grade) ? s.grade : '—';
+        const recs  = allResponses.filter(r => (r.studentId || '').toLowerCase() === nm.toLowerCase());
+        const total = recs.length;
+        const corr  = recs.filter(r => r.correct).length;
+        const pct   = total ? Math.round(corr / total * 100) : null;
+        const color = pct === null ? 'var(--text3,#9ca3af)' : pct >= 70 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
+        const todayCount = recs.filter(r => new Date(r.ts).toDateString() === todayStr).length;
+        const init  = nm.slice(0,1).toUpperCase();
+        return { nm, grade, total, pct, color, todayCount, init };
+      }).sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
+
+      tableEl.innerHTML = rows.map(r =>
+        `<div class="row gap10" style="padding:8px 0;border-bottom:1px solid var(--border,#e5e7eb);align-items:center">
+          <div class="avatar" style="width:32px;height:32px;font-size:13px;background:var(--surface2,#e5e7eb);flex-shrink:0">${r.init}</div>
+          <div class="f1">
+            <div class="fw6 fs13">${r.nm}</div>
+            <div class="fs11 c3">Grade ${r.grade} · ${r.total} answered${r.todayCount ? ' · ' + r.todayCount + ' today' : ''}</div>
+          </div>
+          <div class="fw8 fs15" style="color:${r.color}">${r.pct !== null ? r.pct + '%' : '—'}</div>
+        </div>`
+      ).join('');
+    }
+  }
 }
 
 async function clearStudentData(name) {
