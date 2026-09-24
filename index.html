@@ -3562,8 +3562,8 @@ function renderMathQ(q) {
   resetAssess();
   // Store current question ref for pick()
   perfState._currentQ = q;
-  // Auto-read question aloud (Urdu only)
-  setTimeout(() => speak('', q.textUrdu || q.text), 400);
+  // Auto-read question aloud (Urdu only, symbols converted to words)
+  setTimeout(() => speak('', mathToUrduSpeech(q.textUrdu || q.text)), 400);
 }
 
 function renderUrduQ(q) {
@@ -5150,6 +5150,18 @@ function speakOnly(text, lang) {
       window.speechSynthesis.speak(utt);
     } catch(e) { resolve(); }
   });
+}
+
+function mathToUrduSpeech(text) {
+  if (!text) return '';
+  return text
+    .replace(/\+/g,  ' جمع ')
+    .replace(/[−–\-]/g, ' تفریق ')
+    .replace(/×/g,   ' ضرب ')
+    .replace(/÷/g,   ' تقسیم ')
+    .replace(/=/g,   ' برابر ')
+    .replace(/[?؟]/g,' کیا ہے ')
+    .replace(/\s+/g, ' ').trim();
 }
 
 function speak(englishText, urduText) {
