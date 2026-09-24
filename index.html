@@ -4591,17 +4591,8 @@ async function renderAdminStudents() {
     return;
   }
 
-  // Get all responses from IDB
-  let allResponses = [];
-  try {
-    const db = await openDB();
-    allResponses = await new Promise((res, rej) => {
-      const tx = db.transaction('responses','readonly');
-      const req = tx.objectStore('responses').getAll();
-      req.onsuccess = () => res(req.result || []);
-      req.onerror   = () => res([]);
-    });
-  } catch(e) {}
+  // Get all responses: IDB + localStorage backup for all students
+  const allResponses = await _getAllResponsesWithLSBackup();
 
   // Build cards
   const cards = roster.map(s => {
@@ -4680,6 +4671,8 @@ async function clearStudentData(name) {
       });
     } catch(e) {}
   } catch(err) { alert('Error clearing data: ' + err.message); return; }
+  // Also wipe localStorage backup for this student
+  try { localStorage.removeItem('takmil-responses-' + name); } catch(e) {}
   alert(`✅ Data cleared for ${name}.`);
   renderAdminStudents(); // refresh list
 }
@@ -5285,17 +5278,8 @@ async function openTeacherDashboard() {
 async function renderTeacherDashboard() {
   const roster = _getRoster();
 
-  // Fetch all IDB responses
-  let allResponses = [];
-  try {
-    const db = await openDB();
-    allResponses = await new Promise(resolve => {
-      const tx  = db.transaction('responses', 'readonly');
-      const req = tx.objectStore('responses').getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror   = () => resolve([]);
-    });
-  } catch(e) {}
+  // Fetch all responses: IDB + localStorage backup for all students
+  let allResponses = await _getAllResponsesWithLSBackup();
 
   const todayStr  = new Date().toDateString();
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday:'long', day:'numeric', month:'short', year:'numeric' });
@@ -5434,6 +5418,41 @@ function openManageStudents() {
 
 function _getRoster() {
   try { return JSON.parse(localStorage.getItem('takmil-roster') || '[]'); } catch(e) { return []; }
+}
+
+/* Read ALL responses: IDB first, then merge each student's localStorage backup */
+async function _getAllResponsesWithLSBackup() {
+  let idbRows = [];
+  try {
+    const d = await openDB();
+    idbRows = await new Promise(resolve => {
+      const tx  = d.transaction('responses','readonly');
+      const req = tx.objectStore('responses').getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => resolve([]);
+    });
+  } catch(e) {}
+
+  // Merge localStorage backups for every student in the roster
+  const roster = _getRoster();
+  const names = roster.map(s => typeof s === 'object' ? s.name : s);
+  // Also catch any names already present in idbRows
+  const idbNames = [...new Set(idbRows.map(r => r.studentId).filter(Boolean))];
+  const allNames = [...new Set([...names, ...idbNames])];
+
+  const seen = new Set(idbRows.map(r => r.ts + '|' + (r.qId || '') + '|' + (r.studentId || '')));
+  for (const nm of allNames) {
+    try {
+      const raw = localStorage.getItem('takmil-responses-' + nm);
+      if (!raw) continue;
+      const lsRows = JSON.parse(raw);
+      for (const r of lsRows) {
+        const key = r.ts + '|' + (r.qId || '') + '|' + (r.studentId || '');
+        if (!seen.has(key)) { idbRows.push(r); seen.add(key); }
+      }
+    } catch(e) {}
+  }
+  return idbRows;
 }
 function _saveRoster(roster) {
   localStorage.setItem('takmil-roster', JSON.stringify(roster));
