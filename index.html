@@ -435,11 +435,11 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
   <div class="scroll has-nav">
     <!-- Greeting -->
     <div>
-      <div class="fs13 c3">Thursday, 18 Sep 2026 · جمعرات</div>
-      <div class="nunito fw8" style="font-size:21px;margin-top:2px">Good morning, Ahmed! 🌅</div>
+      <div class="fs13 c3" id="s-date-lbl">Thursday, 18 Sep 2026 · جمعرات</div>
+      <div class="nunito fw8" id="s-greet" style="font-size:21px;margin-top:2px">Good morning! 🌅</div>
       <div class="row gap8" style="margin-top:7px;flex-wrap:wrap">
-        <span class="badge b-pri">Class 5-B</span>
-        <span class="badge b-amber">2 assessments today</span>
+        <span class="badge b-pri" id="s-grade-badge">Grade 1</span>
+        <span class="badge b-amber" id="s-assess-today" style="display:none">2 assessments today</span>
       </div>
     </div>
 
@@ -483,15 +483,15 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
           <div class="row jbet" style="align-items:flex-end">
             <div>
               <div class="fs12 c3">Mastery</div>
-              <div class="nunito fw8" style="font-size:22px;color:var(--primary)">72%</div>
+              <div class="nunito fw8" id="s-math-pct" style="font-size:22px;color:var(--primary)">0%</div>
             </div>
             <div class="ring">
               <svg width="52" height="52" viewBox="0 0 52 52">
                 <circle cx="26" cy="26" r="20" fill="none" stroke="var(--border)" stroke-width="4.5"/>
-                <circle cx="26" cy="26" r="20" fill="none" stroke="var(--primary)" stroke-width="4.5"
-                  stroke-dasharray="125.7" stroke-dashoffset="35.2" stroke-linecap="round"/>
+                <circle id="s-math-ring" cx="26" cy="26" r="20" fill="none" stroke="var(--primary)" stroke-width="4.5"
+                  stroke-dasharray="125.7" stroke-dashoffset="125.7" stroke-linecap="round"/>
               </svg>
-              <span class="ring-lbl" style="font-size:10.5px">72</span>
+              <span class="ring-lbl" id="s-math-ring-lbl" style="font-size:10.5px">0</span>
             </div>
           </div>
         </div>
@@ -507,15 +507,15 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
           <div class="row jbet" style="align-items:flex-end">
             <div>
               <div class="fs12 c3">Mastery</div>
-              <div class="nunito fw8" style="font-size:22px;color:var(--amber)">58%</div>
+              <div class="nunito fw8" id="s-urdu-pct" style="font-size:22px;color:var(--amber)">0%</div>
             </div>
             <div class="ring">
               <svg width="52" height="52" viewBox="0 0 52 52">
                 <circle cx="26" cy="26" r="20" fill="none" stroke="var(--border)" stroke-width="4.5"/>
-                <circle cx="26" cy="26" r="20" fill="none" stroke="var(--amber)" stroke-width="4.5"
-                  stroke-dasharray="125.7" stroke-dashoffset="52.8" stroke-linecap="round"/>
+                <circle id="s-urdu-ring" cx="26" cy="26" r="20" fill="none" stroke="var(--amber)" stroke-width="4.5"
+                  stroke-dasharray="125.7" stroke-dashoffset="125.7" stroke-linecap="round"/>
               </svg>
-              <span class="ring-lbl" style="font-size:10.5px">58</span>
+              <span class="ring-lbl" id="s-urdu-ring-lbl" style="font-size:10.5px">0</span>
             </div>
           </div>
         </div>
@@ -527,35 +527,42 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
             <div class="fs12 c3">Reading &amp; Comprehension</div>
           </div>
           <div style="text-align:right">
-            <div class="nunito fw8" style="font-size:22px;color:var(--blue)">65%</div>
-            <span class="badge b-blue" style="margin-top:2px">3 lessons left</span>
+            <div class="nunito fw8" id="s-eng-pct" style="font-size:22px;color:var(--blue)">0%</div>
+            <span class="badge b-blue" id="s-eng-sub" style="margin-top:2px">Start now</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Achievement -->
-    <div class="card row gap12">
+    <!-- Achievement / Recent activity -->
+    <div class="card row gap12" id="s-achieve-card" style="display:none">
       <div style="font-size:30px">🏆</div>
       <div>
-        <div class="fs12 c3">Last achievement</div>
-        <div class="fw7 fs14">Completed: Fractions Unit</div>
-        <div class="fs12" style="color:var(--green)">Score 8/10 · Excellent! شاباش</div>
+        <div class="fs12 c3">Last assessment</div>
+        <div class="fw7 fs14" id="s-achieve-title">—</div>
+        <div class="fs12" id="s-achieve-score" style="color:var(--green)">—</div>
       </div>
+    </div>
+
+    <!-- Empty state for brand new students -->
+    <div class="card" id="s-welcome-card" style="text-align:center;padding:20px 16px">
+      <div style="font-size:32px;margin-bottom:8px">👋</div>
+      <div class="fw7 fs14">Welcome to TAKMIL Learn!</div>
+      <div class="fs13 c3" style="margin-top:4px">Tap a subject above to begin your first assessment.</div>
     </div>
   </div>
 
   <nav class="bnav">
-    <button class="bnav-item on">
+    <button class="bnav-item on" id="bnav-home" onclick="bnavSwitch('home')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L12 3l9 9"/><path d="M9 21V9h6v12"/></svg>Home
     </button>
-    <button class="bnav-item">
+    <button class="bnav-item" id="bnav-subjects" onclick="bnavSwitch('subjects')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Subjects
     </button>
-    <button class="bnav-item" onclick="openProgressScreen()">
+    <button class="bnav-item" id="bnav-progress" onclick="bnavSwitch('progress')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
     </button>
-    <button class="bnav-item">
+    <button class="bnav-item" id="bnav-profile" onclick="bnavSwitch('profile')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
     </button>
   </nav>
@@ -4264,21 +4271,136 @@ function _loadRosterForPicker() {
 
 function selectStudent(name) {
   currentStudentId = name;
-  // Update greeting on student home screen
-  const greet = document.querySelector('#s-student .nunito.fw8');
-  if (greet) {
-    const hr = new Date().getHours();
-    const tod = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
-    greet.textContent = tod + ', ' + name + '! 🌅';
-  }
-  // Update any subject screens that show student name
-  const badge = document.querySelector('#s-student .badge.b-pri');
-  if (badge) {
-    const raw = localStorage.getItem('takmil-setup');
-    const setup = raw ? JSON.parse(raw) : {};
-    if (setup.grade) badge.textContent = setup.grade;
-  }
   nav('s-student');
+  renderStudentHome(name);
+}
+
+async function renderStudentHome(name) {
+  // Date + greeting
+  const now = new Date();
+  const hr  = now.getHours();
+  const tod = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  const todUrdu = hr < 12 ? 'صبح بخیر' : hr < 17 ? 'دوپہر بخیر' : 'شام بخیر';
+  const dateStr = now.toLocaleDateString('en-US', {weekday:'long', day:'numeric', month:'short', year:'numeric'});
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setEl('s-date-lbl', dateStr);
+  setEl('s-greet', tod + ', ' + name + '! 🌅');
+
+  // Grade — look up from roster, not from global setup
+  let grade = '';
+  try {
+    const roster = JSON.parse(localStorage.getItem('takmil-roster') || '[]');
+    const entry  = roster.find(s => (typeof s === 'object' ? s.name : s) === name);
+    if (entry && typeof entry === 'object' && entry.grade) grade = entry.grade;
+  } catch(e) {}
+  if (!grade) {
+    try { const s = JSON.parse(localStorage.getItem('takmil-setup') || '{}'); grade = s.grade || ''; } catch(e) {}
+  }
+  const gradeBadge = document.getElementById('s-grade-badge');
+  if (gradeBadge) gradeBadge.textContent = grade ? 'Grade ' + grade.replace(/\D/g,'') || grade : 'Student';
+
+  // Pull responses from IDB for this student
+  let responses = [];
+  try {
+    const db = await openDB();
+    const all = await new Promise(resolve => {
+      const tx  = db.transaction('responses','readonly');
+      const req = tx.objectStore('responses').getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror   = () => resolve([]);
+    });
+    responses = all.filter(r => (r.studentId || '').toLowerCase() === name.toLowerCase());
+  } catch(e) {}
+
+  // Compute mastery per subject
+  function subjectMastery(subj) {
+    const qs = responses.filter(r => r.subject === subj);
+    if (!qs.length) return 0;
+    const correct = qs.filter(r => r.correct).length;
+    return Math.round(correct / qs.length * 100);
+  }
+  const mathPct = subjectMastery('math');
+  const urduPct = subjectMastery('urdu');
+  const engPct  = subjectMastery('english');
+
+  // Ring helper: circumference=125.7, offset = 125.7*(1-pct/100)
+  function setRing(pctId, ringId, lblId, pct) {
+    setEl(pctId, pct + '%');
+    setEl(lblId, '' + pct);
+    const ring = document.getElementById(ringId);
+    if (ring) ring.setAttribute('stroke-dashoffset', (125.7 * (1 - pct / 100)).toFixed(1));
+  }
+  setRing('s-math-pct', 's-math-ring', 's-math-ring-lbl', mathPct);
+  setRing('s-urdu-pct', 's-urdu-ring', 's-urdu-ring-lbl', urduPct);
+  setEl('s-eng-pct', engPct + '%');
+  const engSub = document.getElementById('s-eng-sub');
+  if (engSub) {
+    const engTotal = responses.filter(r => r.subject === 'english').length;
+    engSub.textContent = engTotal ? engTotal + ' questions done' : 'Start now';
+  }
+
+  // Achievement / welcome card
+  const hasAny = responses.length > 0;
+  const achieveCard  = document.getElementById('s-achieve-card');
+  const welcomeCard  = document.getElementById('s-welcome-card');
+  if (achieveCard) achieveCard.style.display = hasAny ? '' : 'none';
+  if (welcomeCard) welcomeCard.style.display = hasAny ? 'none' : '';
+
+  if (hasAny) {
+    // Find most recent response
+    const last = responses.slice().sort((a,b) => (b.ts||0)-(a.ts||0))[0];
+    const subjLabel = last.subject === 'math' ? 'Mathematics · حساب' :
+                      last.subject === 'urdu' ? 'Urdu · اردو' : 'English';
+    const subjectResps = responses.filter(r => r.subject === last.subject);
+    const correct = subjectResps.filter(r => r.correct).length;
+    setEl('s-achieve-title', subjLabel);
+    setEl('s-achieve-score', correct + '/' + subjectResps.length + ' correct · ' +
+      (subjectMastery(last.subject) >= 70 ? 'Excellent! شاباش 🎉' :
+       subjectMastery(last.subject) >= 50 ? 'Good · اچھا' : 'Keep going · جاری رکھیں'));
+  }
+}
+
+function bnavSwitch(tab) {
+  // Update active button
+  ['home','subjects','progress','profile'].forEach(t => {
+    const btn = document.getElementById('bnav-' + t);
+    if (btn) btn.classList.toggle('on', t === tab);
+  });
+  if (tab === 'home') {
+    // Already on home — refresh
+    renderStudentHome(currentStudentId);
+  } else if (tab === 'subjects') {
+    // Scroll to subjects grid on the home screen
+    const subj = document.querySelector('#s-student .subj-grid');
+    if (subj) subj.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (tab === 'progress') {
+    openProgressScreen();
+    // Reset bnav to home when they come back
+    setTimeout(() => {
+      ['home','subjects','progress','profile'].forEach(t => {
+        const btn = document.getElementById('bnav-' + t);
+        if (btn) btn.classList.toggle('on', t === 'home');
+      });
+    }, 300);
+  } else if (tab === 'profile') {
+    openStudentProfile();
+  }
+}
+
+function openStudentProfile() {
+  // Build a quick profile overlay
+  let roster = [];
+  try { roster = JSON.parse(localStorage.getItem('takmil-roster') || '[]'); } catch(e) {}
+  const entry = roster.find(s => (typeof s === 'object' ? s.name : s) === currentStudentId);
+  const grade = (entry && entry.grade) ? entry.grade : '—';
+  const hasPin = entry && entry.pin ? '🔒 PIN set' : '👆 No PIN';
+  // Navigate to a simple screen or show alert for now
+  alert(`Student: ${currentStudentId}\nGrade: ${grade}\nPIN: ${hasPin}\n\nTo edit, ask your teacher.`);
+  // Reset bnav
+  ['home','subjects','progress','profile'].forEach(t => {
+    const btn = document.getElementById('bnav-' + t);
+    if (btn) btn.classList.toggle('on', t === 'home');
+  });
 }
 
 /* ── PIN ENTRY ──────────────────────────────────────── */
