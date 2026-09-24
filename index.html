@@ -1110,16 +1110,16 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
   <div class="scroll">
     <!-- Progress -->
     <div>
-      <div class="pbar"><div class="pbar-fill" style="width:25%;background:var(--accent)"></div></div>
+      <div class="pbar"><div class="pbar-fill" id="u-pbar" style="width:0%;background:var(--accent)"></div></div>
       <div class="row jbet" style="margin-top:4px">
-        <span class="fs12 c3">1 correct so far</span>
-        <span class="fs12 c3">25% complete</span>
+        <span class="fs12 c3" id="u-pbar-correct">0 correct so far</span>
+        <span class="fs12 c3" id="u-pbar-pct">0% complete</span>
       </div>
     </div>
 
     <!-- Skill + timer row -->
     <div class="row jbet">
-      <span class="badge b-amber">Reading Comprehension · فہم عبارت</span>
+      <span class="badge b-amber" id="u-skill-badge">Reading Comprehension · فہم عبارت</span>
       <span class="fs12 c3 row gap4">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         3:20
@@ -1127,7 +1127,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     </div>
 
     <!-- Vocab spotlight (top of question) -->
-    <div class="card row gap12" style="background:var(--primary-lt);border:1.5px solid var(--primary)">
+    <div class="card row gap12" id="u-vocab-card" style="background:var(--primary-lt);border:1.5px solid var(--primary)">
       <div style="flex-shrink:0;text-align:center;min-width:60px">
         <div class="u-font fw7" style="font-size:26px;color:var(--primary);line-height:2">محنتی</div>
         <div class="fs11 c3" style="margin-top:0">mih-na-ti</div>
@@ -1143,7 +1143,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     </div>
 
     <!-- Reading passage card -->
-    <div class="card">
+    <div class="card" id="u-passage-card">
       <div class="row jbet" style="margin-bottom:10px">
         <div class="row gap6">
           <span style="font-size:15px">📜</span>
@@ -1163,11 +1163,24 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
     </div>
 
+    <!-- Letter recognition panel (type:letter) -->
+    <div id="u-letter-panel" hidden class="card" style="text-align:center;padding:32px 16px">
+      <div id="u-letter-display" class="u-font fw7" style="font-size:88px;color:var(--primary);line-height:1.4;direction:rtl"></div>
+      <div id="u-letter-name" class="u-font fw7" style="font-size:22px;color:var(--text-2);margin-top:6px;direction:rtl"></div>
+      <div id="u-letter-sound" class="fs13 c3" style="margin-top:2px;letter-spacing:1px"></div>
+    </div>
+
+    <!-- Word reading panel (type:word) -->
+    <div id="u-word-panel" hidden class="card" style="text-align:center;padding:28px 16px">
+      <div id="u-word-display" class="u-font fw7" style="font-size:56px;color:var(--text-1);direction:rtl;line-height:2.2"></div>
+      <div id="u-word-trans" class="fs13 c3" style="margin-top:2px;letter-spacing:1px"></div>
+    </div>
+
     <!-- Question -->
     <div class="card">
-      <div class="badge b-amber" style="margin-bottom:10px">سوال · Question 2</div>
-      <div class="u-text" style="font-size:21px;color:var(--text-1)">احمد کیسا طالب علم ہے؟</div>
-      <div class="fs13 c3" style="margin-top:4px">What kind of student is Ahmed?</div>
+      <div class="badge b-amber" id="u-q-num-badge" style="margin-bottom:10px">سوال · Question</div>
+      <div class="u-text" data-qstem style="font-size:21px;color:var(--text-1)">احمد کیسا طالب علم ہے؟</div>
+      <div class="fs13 c3" id="u-q-en" style="margin-top:4px">What kind of student is Ahmed?</div>
     </div>
 
     <!-- Urdu MCQ options -->
@@ -1205,7 +1218,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     </div>
 
     <!-- Phonics breakdown (always shown below) -->
-    <div class="card">
+    <div class="card" id="u-phonics-card">
       <div class="row gap8" style="margin-bottom:10px">
         <span style="font-size:15px">🔤</span>
         <span class="fw7 fs13">Phonics · حروف کی آوازیں</span>
@@ -1249,7 +1262,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
             <div class="fs12 c3">Ahmed is a hardworking student.</div>
           </div>
         </div>
-        <button class="btn btn-primary" style="margin-top:12px;background:var(--accent)" onclick="resetUrdu();nav('s-student')">
+        <button class="btn btn-primary" style="margin-top:12px;background:var(--accent)" onclick="advanceUrdu()">
           Next Question →
         </button>
       </div>
@@ -1853,14 +1866,36 @@ function pickUrdu(el, correct, letter) {
   if (correct) {
     el.classList.add('correct');
     const fbOk = document.getElementById('u-fb-ok');
-    if (fbOk) fbOk.hidden = false;
+    if (fbOk) {
+      fbOk.hidden = false;
+      // Update correct feedback text from question
+      const cq = perfState._currentQ;
+      if (cq) {
+        const correctOpt = cq.options.find(o => o.correct);
+        const okText = fbOk.querySelector('.u-font');
+        if (okText && correctOpt) okText.textContent = correctOpt.text + (correctOpt.textEn ? ' — ' + correctOpt.textEn : '');
+        const explainEl = fbOk.querySelector('.fs12');
+        if (explainEl && cq.explain) explainEl.textContent = cq.explain;
+      }
+    }
   } else {
     el.classList.add('wrong');
-    // B (index 1) is correct
-    const opts = document.querySelectorAll('#u-opts .opt');
-    if (opts[1]) opts[1].classList.add('correct');
+    // Highlight actual correct option
+    const allOpts = document.querySelectorAll('#u-opts .opt');
+    const cq = perfState._currentQ;
+    if (cq) {
+      const correctIdx = cq.options.findIndex(o => o.correct);
+      if (allOpts[correctIdx]) allOpts[correctIdx].classList.add('correct');
+    }
     const fbNo = document.getElementById('u-fb-no');
-    if (fbNo) fbNo.hidden = false;
+    if (fbNo) {
+      fbNo.hidden = false;
+      const cq2 = perfState._currentQ;
+      if (cq2 && cq2.hint) {
+        const hintEl = fbNo.querySelector('.fs13');
+        if (hintEl) hintEl.textContent = 'Hint: ' + cq2.hint;
+      }
+    }
   }
   const fb = document.getElementById('u-fb');
   if (fb) fb.hidden = false;
@@ -1876,6 +1911,16 @@ function pickUrdu(el, correct, letter) {
     if (fb) fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     if (!correct) checkIntervention();
   }, 80);
+}
+
+function advanceUrdu() {
+  perfState.qIndex++;
+  if (perfState.qIndex >= perfState.queue.length) {
+    // Assessment complete
+    nav('s-student');
+    return;
+  }
+  renderCurrentQ();
 }
 
 function toggleTrans() {
@@ -2877,6 +2922,250 @@ const QBANK = {
       explain:'ساکھ خراب ہوتی ہے — "آخرکار انسان کی ساکھ خراب ہوتی ہے".'
     },
 
+    /* ── LETTER RECOGNITION  حروف تہجی  diff:1 ──────── */
+    { id:'u-let-1-1', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'ا', letterName:'الف', soundLabel:'a',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'ب', textEn:'Bay',  correct:false},
+        {label:'B', text:'ا', textEn:'Alif', correct:true},
+        {label:'C', text:'پ', textEn:'Pay',  correct:false},
+        {label:'D', text:'ت', textEn:'Tay',  correct:false}
+      ],
+      hint:'یہ اردو حروف تہجی کا پہلا حرف ہے',
+      explain:'الف — Urdu alphabet\'s first letter, makes the "a" sound.'
+    },
+    { id:'u-let-1-2', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'ب', letterName:'بے', soundLabel:'b',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'ن', textEn:'Noon', correct:false},
+        {label:'B', text:'ت', textEn:'Tay',  correct:false},
+        {label:'C', text:'ب', textEn:'Bay',  correct:true},
+        {label:'D', text:'پ', textEn:'Pay',  correct:false}
+      ],
+      hint:'اس حرف کی آواز "ب" جیسی ہے جیسے بکری میں',
+      explain:'بے — makes the "b" sound, as in بکری (goat).'
+    },
+    { id:'u-let-1-3', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'ج', letterName:'جیم', soundLabel:'j',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'ح', textEn:'Hay',  correct:false},
+        {label:'B', text:'چ', textEn:'Chay', correct:false},
+        {label:'C', text:'خ', textEn:'Khay', correct:false},
+        {label:'D', text:'ج', textEn:'Jeem', correct:true}
+      ],
+      hint:'"ج" سے جملہ شروع ہوتا ہے',
+      explain:'جیم — makes the "j" sound, as in جملہ (sentence).'
+    },
+    { id:'u-let-1-4', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'د', letterName:'دال', soundLabel:'d',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'د', textEn:'Daal', correct:true},
+        {label:'B', text:'ذ', textEn:'Zaal', correct:false},
+        {label:'C', text:'ر', textEn:'Ray',  correct:false},
+        {label:'D', text:'ز', textEn:'Zay',  correct:false}
+      ],
+      hint:'"د" سے دل بنتا ہے',
+      explain:'دال — makes the "d" sound, as in دل (heart).'
+    },
+    { id:'u-let-1-5', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'ر', letterName:'رے', soundLabel:'r',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'و', textEn:'Wao', correct:false},
+        {label:'B', text:'ز', textEn:'Zay', correct:false},
+        {label:'C', text:'ژ', textEn:'Zhay',correct:false},
+        {label:'D', text:'ر', textEn:'Ray', correct:true}
+      ],
+      hint:'"ر" سے روشنی بنتا ہے',
+      explain:'رے — makes the "r" sound, as in روشنی (light).'
+    },
+    { id:'u-let-1-6', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'س', letterName:'سین', soundLabel:'s',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'ش', textEn:'Sheen',correct:false},
+        {label:'B', text:'س', textEn:'Seen', correct:true},
+        {label:'C', text:'ص', textEn:'Suad', correct:false},
+        {label:'D', text:'ث', textEn:'Say',  correct:false}
+      ],
+      hint:'"س" سے سکول بنتا ہے',
+      explain:'سین — makes the "s" sound, as in سکول (school).'
+    },
+    { id:'u-let-1-7', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'م', letterName:'میم', soundLabel:'m',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'ن', textEn:'Noon', correct:false},
+        {label:'B', text:'و', textEn:'Wao',  correct:false},
+        {label:'C', text:'م', textEn:'Meem', correct:true},
+        {label:'D', text:'ی', textEn:'Yay',  correct:false}
+      ],
+      hint:'"م" سے ماں بنتا ہے',
+      explain:'میم — makes the "m" sound, as in ماں (mother).'
+    },
+    { id:'u-let-1-8', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'ن', letterName:'نون', soundLabel:'n',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'ی', textEn:'Yay',  correct:false},
+        {label:'B', text:'ہ', textEn:'Hay',  correct:false},
+        {label:'C', text:'و', textEn:'Wao',  correct:false},
+        {label:'D', text:'ن', textEn:'Noon', correct:true}
+      ],
+      hint:'"ن" سے نام بنتا ہے',
+      explain:'نون — makes the "n" sound, as in نام (name).'
+    },
+    { id:'u-let-1-9', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'ک', letterName:'کاف', soundLabel:'k',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'گ', textEn:'Gay',  correct:false},
+        {label:'B', text:'ک', textEn:'Kaaf', correct:true},
+        {label:'C', text:'ق', textEn:'Qaaf', correct:false},
+        {label:'D', text:'ف', textEn:'Fay',  correct:false}
+      ],
+      hint:'"ک" سے کتاب بنتا ہے',
+      explain:'کاف — makes the "k" sound, as in کتاب (book).'
+    },
+    { id:'u-let-1-10', subject:'urdu', skill:'Letters', skillUrdu:'حروف تہجی', type:'letter', diff:1,
+      letter:'ل', letterName:'لام', soundLabel:'l',
+      text:'یہ حرف کون سا ہے؟', textEn:'Which letter is this?',
+      options:[
+        {label:'A', text:'ل', textEn:'Laam', correct:true},
+        {label:'B', text:'ر', textEn:'Ray',  correct:false},
+        {label:'C', text:'ن', textEn:'Noon', correct:false},
+        {label:'D', text:'م', textEn:'Meem', correct:false}
+      ],
+      hint:'"ل" سے لڑکا بنتا ہے',
+      explain:'لام — makes the "l" sound, as in لڑکا (boy).'
+    },
+
+    /* ── WORD READING  الفاظ کی پہچان  diff:1 ──────── */
+    { id:'u-word-1-1', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'کتاب', wordTrans:'ki-taab',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'قلم',    textEn:'Pen',    correct:false},
+        {label:'B', text:'کتاب',   textEn:'Book',   correct:true},
+        {label:'C', text:'میز',    textEn:'Table',  correct:false},
+        {label:'D', text:'اسکول', textEn:'School', correct:false}
+      ],
+      hint:'ہم پڑھنے کے لیے اسے استعمال کرتے ہیں',
+      explain:'کتاب = Book — ہم کتاب پڑھتے ہیں (we read a book).'
+    },
+    { id:'u-word-1-2', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'پانی', wordTrans:'paa-ni',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'دودھ',   textEn:'Milk',  correct:false},
+        {label:'B', text:'آگ',     textEn:'Fire',  correct:false},
+        {label:'C', text:'پانی',   textEn:'Water', correct:true},
+        {label:'D', text:'ہوا',    textEn:'Air',   correct:false}
+      ],
+      hint:'پیاس لگنے پر ہم اسے پیتے ہیں',
+      explain:'پانی = Water — زندگی کے لیے ضروری ہے (essential for life).'
+    },
+    { id:'u-word-1-3', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'گھر', wordTrans:'ghar',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'گھر',    textEn:'Home',   correct:true},
+        {label:'B', text:'سڑک',   textEn:'Road',   correct:false},
+        {label:'C', text:'باغ',   textEn:'Garden', correct:false},
+        {label:'D', text:'بازار', textEn:'Market', correct:false}
+      ],
+      hint:'ہم رات کو یہاں سوتے ہیں',
+      explain:'گھر = Home/House — ہم گھر میں رہتے ہیں (we live at home).'
+    },
+    { id:'u-word-1-4', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'ماں', wordTrans:'maa(n)',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'باپ',  textEn:'Father',     correct:false},
+        {label:'B', text:'بھائی', textEn:'Brother',  correct:false},
+        {label:'C', text:'بہن',  textEn:'Sister',    correct:false},
+        {label:'D', text:'ماں',  textEn:'Mother',    correct:true}
+      ],
+      hint:'ہمیں جنم دینے والی ہستی',
+      explain:'ماں = Mother — ماں کی محبت بے مثال ہے (a mother\'s love is incomparable).'
+    },
+    { id:'u-word-1-5', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'درخت', wordTrans:'da-rakht',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'پھول',  textEn:'Flower', correct:false},
+        {label:'B', text:'پتھر',  textEn:'Stone',  correct:false},
+        {label:'C', text:'درخت',  textEn:'Tree',   correct:true},
+        {label:'D', text:'پہاڑ',  textEn:'Mountain',correct:false}
+      ],
+      hint:'باغ میں اگتا ہے اور آکسیجن دیتا ہے',
+      explain:'درخت = Tree — درخت ہمیں آکسیجن دیتے ہیں (trees give us oxygen).'
+    },
+    { id:'u-word-1-6', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'سورج', wordTrans:'suu-raj',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'سورج',  textEn:'Sun',   correct:true},
+        {label:'B', text:'چاند',  textEn:'Moon',  correct:false},
+        {label:'C', text:'ستارہ', textEn:'Star',  correct:false},
+        {label:'D', text:'بادل',  textEn:'Cloud', correct:false}
+      ],
+      hint:'دن میں روشنی دیتا ہے، رات کو نہیں',
+      explain:'سورج = Sun — سورج مشرق سے طلوع ہوتا ہے (the sun rises in the east).'
+    },
+    { id:'u-word-1-7', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'اسکول', wordTrans:'is-kool',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'ہسپتال', textEn:'Hospital', correct:false},
+        {label:'B', text:'اسکول',  textEn:'School',   correct:true},
+        {label:'C', text:'مسجد',   textEn:'Mosque',   correct:false},
+        {label:'D', text:'بازار',  textEn:'Market',   correct:false}
+      ],
+      hint:'یہاں بچے پڑھنے جاتے ہیں',
+      explain:'اسکول = School — بچے روزانہ اسکول جاتے ہیں (children go to school daily).'
+    },
+    { id:'u-word-1-8', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'قلم', wordTrans:'qa-lam',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'کاغذ',  textEn:'Paper', correct:false},
+        {label:'B', text:'کتاب',  textEn:'Book',  correct:false},
+        {label:'C', text:'قلم',   textEn:'Pen',   correct:true},
+        {label:'D', text:'بستہ',  textEn:'Bag',   correct:false}
+      ],
+      hint:'لکھنے کے لیے استعمال ہوتا ہے',
+      explain:'قلم = Pen — قلم سے لکھتے ہیں (we write with a pen).'
+    },
+    { id:'u-word-1-9', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'دوست', wordTrans:'dost',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'دشمن',  textEn:'Enemy',  correct:false},
+        {label:'B', text:'دوست',  textEn:'Friend', correct:true},
+        {label:'C', text:'استاد', textEn:'Teacher',correct:false},
+        {label:'D', text:'طالب علم', textEn:'Student', correct:false}
+      ],
+      hint:'مشکل میں کام آنے والا',
+      explain:'دوست = Friend — اچھا دوست مشکل میں کام آتا ہے (a good friend helps in difficulty).'
+    },
+    { id:'u-word-1-10', subject:'urdu', skill:'Word Reading', skillUrdu:'الفاظ', type:'word', diff:1,
+      word:'محنت', wordTrans:'meh-nat',
+      text:'اس لفظ کا مطلب کیا ہے؟', textEn:'What does this word mean?',
+      options:[
+        {label:'A', text:'سستی',   textEn:'Laziness',  correct:false},
+        {label:'B', text:'خوشی',   textEn:'Happiness', correct:false},
+        {label:'C', text:'محنت',   textEn:'Hard work', correct:true},
+        {label:'D', text:'نیند',   textEn:'Sleep',     correct:false}
+      ],
+      hint:'کامیابی کی کنجی',
+      explain:'محنت = Hard work — محنت کامیابی کی کنجی ہے (hard work is the key to success).'
+    },
+
     /* ── VOCABULARY (context sentence as passage) ───── */
     {
       id:'u-vocab-1-1', subject:'urdu', skill:'Vocabulary', skillUrdu:'الفاظ',
@@ -3185,37 +3474,100 @@ function renderMathQ(q) {
 }
 
 function renderUrduQ(q) {
-  const passage = document.querySelector('#s-urdu-assess .passage-block p');
-  if (passage) passage.textContent = q.passage;
+  perfState._currentQ = q;
+  resetUrdu();
 
-  const transBlock = document.getElementById('trans-block');
-  if (transBlock) {
-    transBlock.querySelector('p').textContent = q.passageTrans;
-    transBlock.hidden = true;
-  }
+  // Progress bar
+  const total = perfState.queue.length;
+  const idx   = perfState.qIndex + 1;
+  const pct   = Math.round((perfState.qIndex / Math.max(total, 1)) * 100);
+  const pbEl  = document.getElementById('u-pbar');
+  if (pbEl) pbEl.style.width = pct + '%';
+  const pPct  = document.getElementById('u-pbar-pct');
+  if (pPct) pPct.textContent = pct + '% complete';
+  const pCorr = document.getElementById('u-pbar-correct');
+  if (pCorr) pCorr.textContent = perfState.sessionCorrect + ' correct so far';
 
+  // Skill + Q badge
+  const skillBadge = document.getElementById('u-skill-badge');
+  if (skillBadge) skillBadge.textContent = (q.skillUrdu || q.skill) + ' · ' + (q.skill || '');
+  const qBadge = document.getElementById('u-q-num-badge');
+  if (qBadge) qBadge.textContent = `Q ${idx} / ${total} · سوال`;
+
+  // Question stem
   const qStem = document.querySelector('#s-urdu-assess .u-text[data-qstem]');
   if (qStem) qStem.textContent = q.text;
+  const qEn = document.getElementById('u-q-en');
+  if (qEn) qEn.textContent = q.textEn || '';
 
+  // Show/hide panels based on question type
+  const isLetter  = q.type === 'letter';
+  const isWord    = q.type === 'word';
+  const isPassage = !isLetter && !isWord; // comprehension/vocab/grammar all have passage
+
+  const vocabCard   = document.getElementById('u-vocab-card');
+  const passageCard = document.getElementById('u-passage-card');
+  const phonicsCard = document.getElementById('u-phonics-card');
+  const letterPanel = document.getElementById('u-letter-panel');
+  const wordPanel   = document.getElementById('u-word-panel');
+
+  if (vocabCard)   vocabCard.hidden   = !isPassage;
+  if (passageCard) passageCard.hidden = !isPassage;
+  if (phonicsCard) phonicsCard.hidden = !isPassage;
+  if (letterPanel) letterPanel.hidden = !isLetter;
+  if (wordPanel)   wordPanel.hidden   = !isWord;
+
+  if (isPassage) {
+    const passage = document.querySelector('#s-urdu-assess .passage-block p');
+    if (passage) passage.textContent = q.passage || '';
+    const transBlock = document.getElementById('trans-block');
+    if (transBlock) {
+      const tp = transBlock.querySelector('p');
+      if (tp) tp.textContent = q.passageTrans || '';
+      transBlock.hidden = true;
+    }
+  } else if (isLetter) {
+    const ld = document.getElementById('u-letter-display');
+    if (ld) ld.textContent = q.letter || '';
+    const ln = document.getElementById('u-letter-name');
+    if (ln) ln.textContent = q.letterName || '';
+    const ls = document.getElementById('u-letter-sound');
+    if (ls) ls.textContent = q.soundLabel ? '/' + q.soundLabel + '/' : '';
+  } else if (isWord) {
+    const wd = document.getElementById('u-word-display');
+    if (wd) wd.textContent = q.word || '';
+    const wt = document.getElementById('u-word-trans');
+    if (wt) wt.textContent = q.wordTrans || '';
+  }
+
+  // Build MCQ options (RTL for Urdu text)
   const opts = document.getElementById('u-opts');
   if (opts) {
     opts.innerHTML = '';
-    q.options.forEach((o, i) => {
+    q.options.forEach(o => {
       const d = document.createElement('div');
       d.className = 'opt opt-rtl';
-      d.innerHTML = `<span>${o.text}</span><div class="opt-lbl">${o.label}</div>`;
+      // For letter questions show big letter; otherwise normal text
+      const textSize = isLetter ? 'font-size:28px;line-height:1.8' : 'font-size:19px;line-height:1.9';
+      d.innerHTML = `<div class="opt-lbl">${o.label}</div><span class="u-font" style="${textSize}">${o.text}</span>${o.textEn ? `<span class="fs12 c3" style="margin-right:6px;white-space:nowrap">${o.textEn}</span>` : ''}`;
       d.onclick = () => pickUrdu(d, o.correct, o.label);
       opts.appendChild(d);
     });
   }
 
-  resetUrdu();
-  perfState._currentQ = q;
-  // Auto-read passage and question aloud (English translation first, then Urdu)
-  setTimeout(() => speak(
-    (q.passageTrans || '') + (q.textEn ? ' ' + q.textEn : ''),
-    (q.passage    || '') + ' ' + (q.text || '')
-  ), 400);
+  // TTS
+  setTimeout(() => {
+    if (isLetter) {
+      speak(q.textEn || q.text, q.letterName ? q.letterName + ' — ' + q.text : q.text);
+    } else if (isWord) {
+      speak((q.textEn || '') + ' ' + (q.wordTrans || ''), q.word + ' — ' + q.text);
+    } else {
+      speak(
+        (q.passageTrans || '') + (q.textEn ? ' ' + q.textEn : ''),
+        (q.passage || '') + ' ' + (q.text || '')
+      );
+    }
+  }, 400);
 }
 
 /* ── ENGLISH ASSESSMENT ─────────────────────────────
