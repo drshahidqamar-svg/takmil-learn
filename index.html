@@ -1043,10 +1043,10 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     </div>
 
     <div class="stat-grid">
-      <div class="stat"><div class="stat-n">342</div><div class="stat-l">Total students</div></div>
-      <div class="stat"><div class="stat-n">14</div><div class="stat-l">Teachers</div></div>
-      <div class="stat"><div class="stat-n" style="color:var(--green)">71%</div><div class="stat-l">School avg score</div></div>
-      <div class="stat"><div class="stat-n" style="color:var(--red)">28</div><div class="stat-l">Students at risk</div></div>
+      <div class="stat"><div class="stat-n" id="admin-stat-students">—</div><div class="stat-l">Total students</div></div>
+      <div class="stat"><div class="stat-n" id="admin-stat-teachers">—</div><div class="stat-l">Teachers</div></div>
+      <div class="stat"><div class="stat-n" id="admin-stat-avg" style="color:var(--green)">—</div><div class="stat-l">School avg score</div></div>
+      <div class="stat"><div class="stat-n" id="admin-stat-risk" style="color:var(--red)">—</div><div class="stat-l">Students at risk</div></div>
     </div>
 
     <!-- Dynamic connectivity + sync card -->
@@ -4630,26 +4630,70 @@ function openStudentProfile() {
 }
 
 /* ── ADMIN OVERVIEW ──────────────────────────────────── */
-function renderAdminOverview() {
-  // Reset to overview tab
+async function renderAdminOverview() {
   adminTabSwitch('overview');
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
   // Date
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
   setEl('admin-date-lbl', dateStr);
-  // School name from setup
+
+  // School name + province from setup
   try {
     const setup = JSON.parse(localStorage.getItem('takmil-setup') || '{}');
     if (setup.schoolName) setEl('admin-school-name', setup.schoolName);
     if (setup.province)   setEl('admin-school-badge', setup.province);
+    if (setup.teacherCount !== undefined) setEl('admin-stat-teachers', setup.teacherCount || '—');
   } catch(e) {}
-  // Sync badge
+
+  // Sync queue count
   try {
     openDB().then(db => {
-      const tx = db.transaction('sync_queue','readonly');
+      const tx  = db.transaction('sync_queue','readonly');
       const req = tx.objectStore('sync_queue').count();
       req.onsuccess = () => setEl('sync-badge', (req.result || 0) + ' records pending sync');
     });
+  } catch(e) {}
+
+  // Real stats from roster + responses
+  try {
+    const roster       = _getRoster();
+    const studentCount = roster.length;
+    setEl('admin-stat-students', studentCount || '0');
+
+    const allResponses = await _getAllResponsesWithLSBackup();
+    const totalResp    = allResponses.length;
+    const totalCorr    = allResponses.filter(r => r.correct).length;
+    const schoolAvg    = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
+
+    // per-student at-risk count
+    const byStudent = {};
+    allResponses.forEach(r => {
+      const nm = (r.studentId || '').toLowerCase();
+      if (!byStudent[nm]) byStudent[nm] = { total: 0, correct: 0 };
+      byStudent[nm].total++;
+      if (r.correct) byStudent[nm].correct++;
+    });
+    const atRisk = Object.values(byStudent).filter(s => s.total > 0 && Math.round(s.correct/s.total*100) < 50).length;
+
+    const avgEl  = document.getElementById('admin-stat-avg');
+    const riskEl = document.getElementById('admin-stat-risk');
+    if (avgEl) {
+      avgEl.textContent = schoolAvg !== null ? schoolAvg + '%' : (totalResp ? '—' : '0%');
+      avgEl.style.color = schoolAvg === null ? '' : schoolAvg >= 70 ? 'var(--green)' : schoolAvg >= 50 ? 'var(--amber)' : 'var(--red)';
+    }
+    if (riskEl) {
+      riskEl.textContent = atRisk;
+      riskEl.style.color = atRisk > 0 ? 'var(--red)' : 'var(--green)';
+    }
+  } catch(e) {}
+
+  // Last-sync label on conn card
+  try {
+    const ls = localStorage.getItem('takmil-last-sync');
+    const syncLbl = ls ? 'Last sync: ' + new Date(parseInt(ls)).toLocaleString() : 'Last sync: never · کبھی نہیں';
+    setEl('admin-last-sync', syncLbl);
   } catch(e) {}
 }
 
@@ -4663,6 +4707,28 @@ function adminTabSwitch(tab) {
   });
   if (tab === 'students')  renderAdminStudents();
   if (tab === 'analytics') renderAdminAnalytics();
+  if (tab === 'sync')      renderAdminSync();
+}
+
+function renderAdminSync() {
+  const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  try {
+    const ls = localStorage.getItem('takmil-last-sync');
+    const label = ls ? 'Last sync: ' + new Date(parseInt(ls)).toLocaleString() : 'Last sync: never · کبھی نہیں';
+    setEl('admin-sync-last', label);
+  } catch(e) {}
+  try {
+    openDB().then(db => {
+      const tx  = db.transaction('sync_queue','readonly');
+      const req = tx.objectStore('sync_queue').count();
+      req.onsuccess = () => {
+        const n = req.result || 0;
+        setEl('admin-sync-body', n > 0
+          ? n + ' responses queued — tap Sync Now to upload.'
+          : 'All responses synced. Nothing pending.');
+      };
+    });
+  } catch(e) {}
 }
 
 async function renderAdminStudents() {
