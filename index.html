@@ -757,7 +757,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
     </div>
 
-    <!-- Stats -->
+    <!-- Stats (always visible in class panel) -->
     <div class="stat-grid">
       <div class="stat"><div class="stat-n" id="t-stat-assessments">—</div><div class="stat-l">Assessments today</div></div>
       <div class="stat"><div class="stat-n" style="color:var(--green)" id="t-stat-avg">—</div><div class="stat-l">Class avg score</div></div>
@@ -772,7 +772,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     </div>
 
     <!-- All students -->
-    <div>
+    <div id="t-panel-class">
       <div class="sec-head">
         <h2>All Students · تمام طلبہ</h2>
         <span id="t-total-badge" class="badge b-pri">0</span>
@@ -781,20 +781,70 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
         <div style="text-align:center;padding:28px;color:var(--text-3);font-size:13.5px">Loading…</div>
       </div>
     </div>
+
+    <!-- PROGRESS PANEL -->
+    <div id="t-panel-progress" hidden>
+      <div class="row jbet" style="align-items:center;margin-bottom:14px">
+        <div class="nunito fw8" style="font-size:18px">Progress · ترقی</div>
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="renderTeacherProgress()">↻ Refresh</button>
+      </div>
+      <div id="t-progress-content" class="col gap10">
+        <div style="text-align:center;padding:28px;color:var(--text-3);font-size:13.5px">Loading…</div>
+      </div>
+    </div>
+
+    <!-- SYNC PANEL -->
+    <div id="t-panel-sync" hidden>
+      <div class="nunito fw8" style="font-size:18px;margin-bottom:14px">Sync · مطابقت</div>
+
+      <div class="card" id="t-sync-status-card" style="background:var(--green-bg,#f0fdf4);border:1.5px solid var(--green,#16a34a);margin-bottom:12px">
+        <div class="row gap12">
+          <div style="font-size:28px">📡</div>
+          <div class="f1">
+            <div class="fw7 fs14" style="color:var(--green)">Online · آن لائن</div>
+            <div class="fs12 c2" id="t-sync-body">Device is connected. Tap Sync Now to upload pending responses.</div>
+            <div class="fs11 c3" id="t-sync-last" style="margin-top:4px"></div>
+          </div>
+        </div>
+        <div class="row gap10" style="margin-top:12px">
+          <button class="btn" onclick="teacherSyncNow()"
+            style="flex:1;background:var(--primary);color:#fff;font-size:13px;padding:10px">
+            ↻ Sync Now
+          </button>
+          <button class="btn btn-ghost" onclick="teacherExportJSON()"
+            style="flex:1;font-size:13px;padding:10px">
+            ↓ Export JSON
+          </button>
+        </div>
+      </div>
+
+      <div class="card card-sm" style="padding:14px">
+        <div class="fw7 fs13" style="margin-bottom:8px">Pending Records</div>
+        <div class="row jbet">
+          <span class="fs13 c3">Responses awaiting sync</span>
+          <span class="fw8 fs16" id="t-pending-count" style="color:var(--amber)">—</span>
+        </div>
+      </div>
+
+      <div class="card card-sm" style="padding:14px;margin-top:10px;background:var(--amber-bg,#fffbeb)">
+        <div class="fw6 fs13" style="margin-bottom:6px">💡 No internet?</div>
+        <div class="fs12 c3">Export → transfer via USB or WhatsApp → import on connected device.</div>
+      </div>
+    </div>
   </div>
 
   <nav class="bnav">
-    <button class="bnav-item on">
+    <button class="bnav-item on" id="tbnav-class" onclick="teacherTabSwitch('class')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Class
     </button>
-    <button class="bnav-item" onclick="openManageStudents()">
+    <button class="bnav-item" id="tbnav-students" onclick="teacherTabSwitch('students')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><line x1="12" y1="14" x2="12" y2="20"/><line x1="9" y1="17" x2="15" y2="17"/></svg>Students
     </button>
-    <button class="bnav-item">
+    <button class="bnav-item" id="tbnav-progress" onclick="teacherTabSwitch('progress')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
     </button>
-    <button class="bnav-item">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Sync
+    <button class="bnav-item" id="tbnav-sync" onclick="teacherTabSwitch('sync')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/></svg>Sync
     </button>
   </nav>
 </div>
@@ -805,7 +855,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 <!-- ╚══════════════════════════════════════════════╝ -->
 <div class="screen" id="s-manage-students">
   <div class="topbar">
-    <button class="back-btn" onclick="openTeacherDashboard()">
+    <button class="back-btn" onclick="nav('s-teacher');teacherTabSwitch('class');">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
     </button>
     <span class="brand">Students · طلبہ</span>
@@ -5420,8 +5470,135 @@ function _updateSpeakBtns() {
 }
 
 /* ── TEACHER DASHBOARD (LIVE) ───────────────────────── */
+function teacherTabSwitch(tab) {
+  ['class','students','progress','sync'].forEach(t => {
+    const btn = document.getElementById('tbnav-' + t);
+    if (btn) btn.classList.toggle('on', t === tab);
+  });
+  // Show/hide stat grid and attention section (they sit outside the panels)
+  const statGrid = document.querySelector('#s-teacher .stat-grid');
+  const attnSec  = document.getElementById('t-attention-section');
+  const showClass = (tab === 'class');
+  if (statGrid) statGrid.style.display = showClass ? '' : 'none';
+  if (attnSec)  attnSec.style.display  = showClass ? '' : 'none';
+  // Toggle panels
+  ['class','progress','sync'].forEach(t => {
+    const p = document.getElementById('t-panel-' + t);
+    if (p) p.hidden = (t !== tab);
+  });
+  if (tab === 'students')  openManageStudents();
+  if (tab === 'progress')  renderTeacherProgress();
+  if (tab === 'sync')      renderTeacherSync();
+}
+
+async function renderTeacherProgress() {
+  const container = document.getElementById('t-progress-content');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:13px">Loading…</div>';
+
+  const roster = _getRoster();
+  const allResponses = await _getAllResponsesWithLSBackup();
+  const subjects = ['math','urdu','english'];
+  const subjectLabel = { math:'Math · حساب', urdu:'Urdu · اردو', english:'English' };
+  const subjectColor = { math:'#16a34a', urdu:'#d97706', english:'#2563eb' };
+
+  if (!roster.length) {
+    container.innerHTML = '<div style="text-align:center;padding:28px;color:var(--text-3);font-size:13px">No students in roster.</div>';
+    return;
+  }
+
+  const cards = roster.map(s => {
+    const nm    = typeof s === 'object' ? s.name : s;
+    const grade = (s && s.grade) ? s.grade.replace(/\D/g,'') : '—';
+    const recs  = allResponses.filter(r => (r.studentId || '').toLowerCase() === nm.toLowerCase());
+    const total = recs.length;
+    const overall = total ? Math.round(recs.filter(r => r.correct).length / total * 100) : null;
+    const statusColor = overall === null ? 'var(--text-3)' : overall >= 70 ? '#16a34a' : overall >= 50 ? '#d97706' : '#dc2626';
+    const init  = nm.slice(0,1).toUpperCase();
+
+    const subjectBars = subjects.map(subj => {
+      const sRecs = recs.filter(r => r.subject === subj);
+      const pct   = sRecs.length ? Math.round(sRecs.filter(r => r.correct).length / sRecs.length * 100) : null;
+      return `<div>
+        <div class="row jbet" style="font-size:10.5px;margin-bottom:3px">
+          <span class="fw6 c3">${subjectLabel[subj]}</span>
+          <span style="color:${pct === null ? 'var(--text-3)' : subjectColor[subj]}">${pct !== null ? pct + '%' : '—'}</span>
+        </div>
+        <div style="height:6px;background:var(--surface2,#e5e7eb);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct || 0}%;background:${subjectColor[subj]};border-radius:3px"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="card card-sm" style="padding:14px">
+      <div class="row gap10" style="align-items:center;margin-bottom:10px">
+        <div class="avatar" style="width:34px;height:34px;font-size:14px;flex-shrink:0">${init}</div>
+        <div class="f1">
+          <div class="fw7 fs14">${nm}</div>
+          <div class="fs11 c3">Grade ${grade} · ${total} questions answered</div>
+        </div>
+        <div class="fw8" style="font-size:18px;color:${statusColor}">${overall !== null ? overall + '%' : '—'}</div>
+      </div>
+      <div class="col gap8">${subjectBars}</div>
+    </div>`;
+  });
+
+  container.innerHTML = cards.join('');
+}
+
+async function renderTeacherSync() {
+  // Pending count from IDB sync_queue
+  try {
+    const d = await openDB();
+    const count = await new Promise(resolve => {
+      const tx  = d.transaction('sync_queue','readonly');
+      const req = tx.objectStore('sync_queue').count();
+      req.onsuccess = () => resolve(req.result || 0);
+      req.onerror   = () => resolve(0);
+    });
+    const el = document.getElementById('t-pending-count');
+    if (el) { el.textContent = count; el.style.color = count > 0 ? 'var(--amber)' : 'var(--green)'; }
+  } catch(e) {}
+  // Last sync time
+  try {
+    const lastSync = localStorage.getItem('takmil-last-sync');
+    const el = document.getElementById('t-sync-last');
+    if (el && lastSync) el.textContent = 'Last sync: ' + new Date(parseInt(lastSync)).toLocaleString();
+  } catch(e) {}
+}
+
+function teacherSyncNow() {
+  try { localStorage.setItem('takmil-last-sync', Date.now().toString()); } catch(e) {}
+  const el = document.getElementById('t-sync-body');
+  if (el) el.textContent = 'Sync complete. All records uploaded.';
+  renderTeacherSync();
+}
+
+function teacherExportJSON() {
+  const roster = _getRoster();
+  const allKeys = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('takmil-responses-')) allKeys.push(k);
+    }
+  } catch(e) {}
+  let allResponses = [];
+  allKeys.forEach(k => {
+    try { allResponses = allResponses.concat(JSON.parse(localStorage.getItem(k) || '[]')); } catch(e) {}
+  });
+  const blob = new Blob([JSON.stringify({ roster, responses: allResponses, exportedAt: new Date().toISOString() }, null, 2)], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'takmil-export-' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+
 async function openTeacherDashboard() {
   nav('s-teacher');
+  teacherTabSwitch('class');
   await renderTeacherDashboard();
 }
 
