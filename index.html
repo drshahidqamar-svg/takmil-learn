@@ -4009,7 +4009,7 @@ function nextQuestion() {
    └── sync_queue  { id (auto), type, payload, ts }
 ────────────────────────────────────────────────────── */
 const DB_NAME    = 'takmil-learn';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 let   db         = null;
 let   currentStudentId = (() => { try { return sessionStorage.getItem('takmil-sid') || 'demo-student'; } catch(e) { return 'demo-student'; } })();
 
