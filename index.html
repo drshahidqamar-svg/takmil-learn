@@ -74,6 +74,142 @@
   --shadow: 0 2px 8px rgba(0,0,0,.28); --shadow-lg: 0 6px 24px rgba(0,0,0,.38);
 }
 
+/* ── LEARN URDU ALPHABET ───────────────────────────── */
+.alpha-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+.alpha-tile {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 4px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform .12s, box-shadow .12s, border-color .15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.alpha-tile:active { transform: scale(.93); }
+.alpha-tile.speaking {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-lt);
+}
+.alpha-tile .alph-letter {
+  font-family: 'Noto Nastaliq Urdu', serif;
+  font-size: 28px;
+  line-height: 1.3;
+  color: var(--text-1);
+}
+.alpha-tile .alph-name {
+  font-size: 10px;
+  color: var(--text-3);
+  margin-top: 3px;
+  font-weight: 600;
+}
+.quiz-prompt {
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--r);
+  padding: 18px 16px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+.quiz-prompt .prompt-label {
+  font-size: 12px;
+  opacity: .75;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.quiz-prompt .prompt-target {
+  font-family: 'Noto Nastaliq Urdu', serif;
+  font-size: 26px;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+.quiz-prompt .prompt-en {
+  font-size: 13px;
+  opacity: .85;
+  margin-top: 2px;
+}
+.quiz-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.quiz-choice {
+  background: var(--surface);
+  border: 2.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 22px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform .1s, border-color .15s, background .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.quiz-choice:active { transform: scale(.95); }
+.quiz-choice .choice-letter {
+  font-family: 'Noto Nastaliq Urdu', serif;
+  font-size: 46px;
+  line-height: 1.2;
+  color: var(--text-1);
+}
+.quiz-choice .choice-name {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 4px;
+  font-weight: 600;
+}
+.quiz-choice.correct {
+  border-color: var(--green);
+  background: var(--green-bg);
+}
+.quiz-choice.wrong {
+  border-color: var(--red);
+  background: var(--red-bg);
+  animation: shakeX .35s ease;
+}
+@keyframes shakeX {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-8px)}
+  40%{transform:translateX(8px)}
+  60%{transform:translateX(-6px)}
+  80%{transform:translateX(6px)}
+}
+.quiz-score-bar {
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.learn-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.learn-tab {
+  flex: 1;
+  padding: 9px 8px;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+}
+.learn-tab.on {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
 /* ── BASE ───────────────────────────────────────────── */
 *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 html, body { height:100%; background:var(--bg); color:var(--text-1);
@@ -535,6 +671,18 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
     </div>
 
+    <!-- Learn Urdu Alphabet card -->
+    <div class="card" onclick="nav('s-learn-urdu');initLearnUrdu()" style="cursor:pointer;border:1.5px solid var(--border)">
+      <div class="row gap12" style="align-items:center">
+        <div style="font-size:30px;flex-shrink:0">ا ب پ</div>
+        <div style="flex:1">
+          <div class="nunito fw7 fs14">اردو حروفِ تہجی سیکھیں</div>
+          <div class="fs12 c3">Learn Urdu Alphabet · Tap letters to hear them</div>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </div>
+    </div>
+
     <!-- Achievement / Recent activity -->
     <div class="card row gap12" id="s-achieve-card" style="display:none">
       <div style="font-size:30px">🏆</div>
@@ -557,8 +705,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     <button class="bnav-item on" id="bnav-home" onclick="bnavSwitch('home')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L12 3l9 9"/><path d="M9 21V9h6v12"/></svg>Home
     </button>
-    <button class="bnav-item" id="bnav-subjects" onclick="bnavSwitch('subjects')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Subjects
+    <button class="bnav-item" id="bnav-learn" onclick="bnavSwitch('learn')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Learn
     </button>
     <button class="bnav-item" id="bnav-progress" onclick="bnavSwitch('progress')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
@@ -569,6 +717,64 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
   </nav>
 </div>
 
+
+<!-- ╔══════════════════════════════════════════════╗ -->
+<!-- ║  LEARN URDU ALPHABET                         ║ -->
+<!-- ╚══════════════════════════════════════════════╝ -->
+<div class="screen" id="s-learn-urdu">
+  <div class="topbar">
+    <button class="back-btn" onclick="nav('s-student')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <span class="nunito fw7 f1" style="font-size:16px">اردو حروفِ تہجی · Urdu Alphabet</span>
+  </div>
+  <div class="scroll has-nav" style="padding-top:12px">
+
+    <!-- Mode tabs -->
+    <div class="learn-tabs">
+      <button class="learn-tab on" id="lu-tab-learn" onclick="luSwitchTab('learn')">📖 Learn · سیکھیں</button>
+      <button class="learn-tab" id="lu-tab-quiz" onclick="luSwitchTab('quiz')">🎯 Quiz · پہچانیں</button>
+    </div>
+
+    <!-- ── LEARN MODE ── -->
+    <div id="lu-learn-mode">
+      <div class="fs12 c3" style="margin-bottom:8px;text-align:center">کسی حرف پر ٹیپ کریں · Tap a letter to hear it</div>
+      <div class="alpha-grid" id="lu-alpha-grid"></div>
+    </div>
+
+    <!-- ── QUIZ MODE ── -->
+    <div id="lu-quiz-mode" style="display:none">
+      <div class="quiz-score-bar">
+        <span class="fw7 fs14">Score · اسکور</span>
+        <span class="fw7 fs14" id="lu-score-display">0 / 0</span>
+      </div>
+      <div class="quiz-prompt" id="lu-quiz-prompt">
+        <div class="prompt-label">Touch the letter · یہ حرف چھوئیں</div>
+        <div class="prompt-target" id="lu-prompt-target">الف</div>
+        <div class="prompt-en" id="lu-prompt-en">Alif</div>
+      </div>
+      <div class="quiz-choices" id="lu-quiz-choices"></div>
+      <button class="btn" id="lu-next-btn" onclick="luNextQuestion()" style="display:none;margin-top:16px">
+        اگلا سوال · Next →
+      </button>
+    </div>
+
+  </div>
+  <nav class="bnav">
+    <button class="bnav-item" onclick="nav('s-student')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L12 3l9 9"/><path d="M9 21V9h6v12"/></svg>Home
+    </button>
+    <button class="bnav-item on">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Learn
+    </button>
+    <button class="bnav-item" onclick="bnavSwitch('progress');nav('s-student')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
+    </button>
+    <button class="bnav-item" onclick="bnavSwitch('profile');nav('s-student')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </button>
+  </nav>
+</div>
 
 <!-- ╔══════════════════════════════════════════════╗ -->
 <!-- ║  ASSESSMENT                                  ║ -->
@@ -4624,17 +4830,16 @@ async function renderStudentHome(name) {
 
 function bnavSwitch(tab) {
   // Update active button
-  ['home','subjects','progress','profile'].forEach(t => {
+  ['home','learn','progress','profile'].forEach(t => {
     const btn = document.getElementById('bnav-' + t);
     if (btn) btn.classList.toggle('on', t === tab);
   });
   if (tab === 'home') {
-    // Already on home — refresh
+    nav('s-student');
     renderStudentHome(currentStudentId);
-  } else if (tab === 'subjects') {
-    // Scroll to subjects grid on the home screen
-    const subj = document.querySelector('#s-student .subj-grid');
-    if (subj) subj.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (tab === 'learn') {
+    nav('s-learn-urdu');
+    initLearnUrdu();
   } else if (tab === 'progress') {
     openProgressScreen();
     // Reset bnav to home when they come back
@@ -6032,4 +6237,172 @@ if (!_savedSetup || !_savedSetup.schoolCode) {
 // Keep the manual debug toggle in sync (for admin testing screen)
 toggleOffline();
 document.getElementById('tog').classList.add('on');
+
+// ══════════════════════════════════════════════════════
+//  LEARN URDU ALPHABET
+// ══════════════════════════════════════════════════════
+const URDU_ALPHABET = [
+  { letter:'ا', name:'الف',    nameEn:'Alif' },
+  { letter:'ب', name:'بے',     nameEn:'Bay' },
+  { letter:'پ', name:'پے',     nameEn:'Pay' },
+  { letter:'ت', name:'تے',     nameEn:'Tay' },
+  { letter:'ٹ', name:'ٹے',     nameEn:'Ttay' },
+  { letter:'ث', name:'ثے',     nameEn:'Say' },
+  { letter:'ج', name:'جیم',    nameEn:'Jeem' },
+  { letter:'چ', name:'چے',     nameEn:'Chay' },
+  { letter:'ح', name:'حے',     nameEn:'Hay (ح)' },
+  { letter:'خ', name:'خے',     nameEn:'Khay' },
+  { letter:'د', name:'دال',    nameEn:'Daal' },
+  { letter:'ڈ', name:'ڈال',    nameEn:'Ddaal' },
+  { letter:'ذ', name:'ذال',    nameEn:'Zaal' },
+  { letter:'ر', name:'رے',     nameEn:'Ray' },
+  { letter:'ڑ', name:'ڑے',     nameEn:'Rray' },
+  { letter:'ز', name:'زے',     nameEn:'Zay' },
+  { letter:'ژ', name:'ژے',     nameEn:'Zhay' },
+  { letter:'س', name:'سین',    nameEn:'Seen' },
+  { letter:'ش', name:'شین',    nameEn:'Sheen' },
+  { letter:'ص', name:'صواد',   nameEn:'Suaad' },
+  { letter:'ض', name:'ضواد',   nameEn:'Zuaad' },
+  { letter:'ط', name:'طوے',    nameEn:'Toay' },
+  { letter:'ظ', name:'ظوے',    nameEn:'Zoay' },
+  { letter:'ع', name:'عین',    nameEn:'Ain' },
+  { letter:'غ', name:'غین',    nameEn:'Ghain' },
+  { letter:'ف', name:'فے',     nameEn:'Fay' },
+  { letter:'ق', name:'قاف',    nameEn:'Qaaf' },
+  { letter:'ک', name:'کاف',    nameEn:'Kaaf' },
+  { letter:'گ', name:'گاف',    nameEn:'Gaaf' },
+  { letter:'ل', name:'لام',    nameEn:'Laam' },
+  { letter:'م', name:'میم',    nameEn:'Meem' },
+  { letter:'ن', name:'نون',    nameEn:'Noon' },
+  { letter:'ں', name:'نون غنہ',nameEn:'Noon Ghunna' },
+  { letter:'و', name:'واؤ',    nameEn:'Wao' },
+  { letter:'ہ', name:'ہے',     nameEn:'Hay (ہ)' },
+  { letter:'ھ', name:'دو چشمی ہے', nameEn:'Do Chashmi Hay' },
+  { letter:'ء', name:'ہمزہ',   nameEn:'Hamza' },
+  { letter:'ی', name:'چھوٹی یے',nameEn:'Chhotee Yay' },
+  { letter:'ے', name:'بڑی یے', nameEn:'Baree Yay' },
+];
+
+let luQuizState = { shuffled: [], idx: 0, score: 0, total: 0, answered: false };
+let luCurrentTab = 'learn';
+
+function speakUrduLetter(text, tileEl) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'ur-PK';
+  utter.rate = 0.75;
+  utter.pitch = 1.0;
+  if (tileEl) {
+    tileEl.classList.add('speaking');
+    utter.onend = () => tileEl.classList.remove('speaking');
+    utter.onerror = () => tileEl.classList.remove('speaking');
+  }
+  speechSynthesis.speak(utter);
+}
+
+function initLearnUrdu() {
+  luSwitchTab('learn');
+  buildAlphaGrid();
+}
+
+function luSwitchTab(tab) {
+  luCurrentTab = tab;
+  document.getElementById('lu-tab-learn').classList.toggle('on', tab === 'learn');
+  document.getElementById('lu-tab-quiz').classList.toggle('on', tab === 'quiz');
+  document.getElementById('lu-learn-mode').style.display = tab === 'learn' ? '' : 'none';
+  document.getElementById('lu-quiz-mode').style.display = tab === 'quiz' ? '' : 'none';
+  if (tab === 'quiz') startAlphabetQuiz();
+}
+
+function buildAlphaGrid() {
+  const grid = document.getElementById('lu-alpha-grid');
+  if (!grid) return;
+  grid.innerHTML = URDU_ALPHABET.map((a, i) =>
+    `<div class="alpha-tile" onclick="speakUrduLetter('${a.name}', this)" data-idx="${i}">
+      <div class="alph-letter">${a.letter}</div>
+      <div class="alph-name">${a.nameEn}</div>
+    </div>`
+  ).join('');
+}
+
+function startAlphabetQuiz() {
+  luQuizState.shuffled = [...URDU_ALPHABET].sort(() => Math.random() - 0.5);
+  luQuizState.idx = 0;
+  luQuizState.score = 0;
+  luQuizState.total = 0;
+  luQuizState.answered = false;
+  renderAlphabetQuiz();
+}
+
+function renderAlphabetQuiz() {
+  const state = luQuizState;
+  if (state.idx >= state.shuffled.length) {
+    // Round complete — restart with reshuffled deck
+    state.shuffled = [...URDU_ALPHABET].sort(() => Math.random() - 0.5);
+    state.idx = 0;
+  }
+  const target = state.shuffled[state.idx];
+  state.answered = false;
+
+  // Score bar
+  document.getElementById('lu-score-display').textContent = `${state.score} / ${state.total}`;
+
+  // Prompt
+  document.getElementById('lu-prompt-target').textContent = target.name;
+  document.getElementById('lu-prompt-en').textContent = target.nameEn;
+
+  // Speak the prompt
+  setTimeout(() => speakUrduLetter(target.name + ' کہاں ہے؟', null), 300);
+
+  // Build 4 choices: target + 3 random others
+  const others = URDU_ALPHABET
+    .filter(a => a.letter !== target.letter)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3);
+  const choices = [...others, target].sort(() => Math.random() - 0.5);
+
+  const choicesEl = document.getElementById('lu-quiz-choices');
+  choicesEl.innerHTML = choices.map(a =>
+    `<div class="quiz-choice" onclick="luCheckAnswer('${a.letter}','${target.letter}',this)">
+      <div class="choice-letter">${a.letter}</div>
+      <div class="choice-name">${a.nameEn}</div>
+    </div>`
+  ).join('');
+
+  document.getElementById('lu-next-btn').style.display = 'none';
+}
+
+function luCheckAnswer(chosen, correct, el) {
+  if (luQuizState.answered) return;
+  luQuizState.answered = true;
+  luQuizState.total++;
+
+  const choicesEl = document.getElementById('lu-quiz-choices');
+  const allChoices = choicesEl.querySelectorAll('.quiz-choice');
+
+  if (chosen === correct) {
+    luQuizState.score++;
+    el.classList.add('correct');
+    speakUrduLetter('بہت خوب! شاباش!', null);
+  } else {
+    el.classList.add('wrong');
+    // Highlight the correct one
+    allChoices.forEach(c => {
+      if (c.querySelector('.choice-letter').textContent === correct) {
+        c.classList.add('correct');
+      }
+    });
+    speakUrduLetter('غلط۔ صحیح جواب یہ ہے۔', null);
+  }
+
+  document.getElementById('lu-score-display').textContent =
+    `${luQuizState.score} / ${luQuizState.total}`;
+  document.getElementById('lu-next-btn').style.display = '';
+}
+
+function luNextQuestion() {
+  luQuizState.idx++;
+  renderAlphabetQuiz();
+}
 </script>
