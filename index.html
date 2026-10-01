@@ -813,8 +813,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       <!-- Dot grid visual -->
       <div id="dot-grid" style="background:var(--surface-2);border-radius:11px;padding:14px;margin-bottom:14px;display:flex;justify-content:center"></div>
       <div class="fs12 c3" style="text-align:center;margin-top:-8px;margin-bottom:12px;direction:rtl">7 قطاریں × 8 = ؟</div>
-      <div class="nunito fw8" style="font-size:28px;text-align:center">7 × 8 = ?</div>
-      <div class="fs13 c3" style="text-align:center;margin-top:2px">سات ضرب آٹھ برابر کیا ہے؟</div>
+      <div class="nunito fw8" style="font-size:28px;text-align:center" id="math-q-text">7 × 8 = ?</div>
+      <div class="fs13 c3" style="text-align:center;margin-top:2px" id="math-q-urdu">سات ضرب آٹھ برابر کیا ہے؟</div>
     </div>
 
     <!-- Options -->
@@ -990,9 +990,27 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
     <!-- PROGRESS PANEL -->
     <div id="t-panel-progress" hidden>
-      <div class="row jbet" style="align-items:center;margin-bottom:14px">
+      <div class="row jbet" style="align-items:center;margin-bottom:10px">
         <div class="nunito fw8" style="font-size:18px">Progress · ترقی</div>
         <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="renderTeacherProgress()">↻ Refresh</button>
+      </div>
+      <!-- Filters -->
+      <div class="row gap8" style="margin-bottom:12px;flex-wrap:wrap">
+        <select id="t-prog-subject-filter" onchange="renderTeacherProgress()"
+          style="flex:1;min-width:100px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-1);font-size:13px;font-family:inherit">
+          <option value="">All Subjects</option>
+          <option value="math">Math · حساب</option>
+          <option value="urdu">Urdu · اردو</option>
+          <option value="english">English</option>
+        </select>
+        <select id="t-prog-grade-filter" onchange="renderTeacherProgress()"
+          style="flex:1;min-width:100px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-1);font-size:13px;font-family:inherit">
+          <option value="">All Grades</option>
+          <option value="1">Grade 1</option><option value="2">Grade 2</option>
+          <option value="3">Grade 3</option><option value="4">Grade 4</option>
+          <option value="5">Grade 5</option><option value="6">Grade 6</option>
+          <option value="7">Grade 7</option><option value="8">Grade 8</option>
+        </select>
       </div>
       <div id="t-progress-content" class="col gap10">
         <div style="text-align:center;padding:28px;color:var(--text-3);font-size:13.5px">Loading…</div>
@@ -1299,64 +1317,11 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
     </div>
 
-    <!-- Class breakdown -->
+    <!-- Grade breakdown (dynamic) -->
     <div>
-      <div class="sec-head"><h2>Class Performance · کلاس کارکردگی</h2><a href="#">All grades</a></div>
-      <div class="col gap10" style="margin-top:9px">
-
-        <div class="card card-sm">
-          <div class="row jbet" style="margin-bottom:9px">
-            <div><div class="fw7 fs14">Grade 5</div><div class="fs12 c3">2 sections · 56 students</div></div>
-            <span class="badge b-green">76% avg</span>
-          </div>
-          <div class="row gap8">
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13 cpri">79%</div><div style="font-size:10px;color:var(--text-3)">Math</div>
-            </div>
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13" style="color:var(--amber)">72%</div><div style="font-size:10px;color:var(--text-3)">Urdu</div>
-            </div>
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13" style="color:var(--blue)">77%</div><div style="font-size:10px;color:var(--text-3)">English</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card card-sm">
-          <div class="row jbet" style="margin-bottom:9px">
-            <div><div class="fw7 fs14">Grade 4</div><div class="fs12 c3">2 sections · 52 students</div></div>
-            <span class="badge b-amber">65% avg</span>
-          </div>
-          <div class="row gap8">
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13" style="color:var(--amber)">62%</div><div style="font-size:10px;color:var(--text-3)">Math</div>
-            </div>
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13 cpri">70%</div><div style="font-size:10px;color:var(--text-3)">Urdu</div>
-            </div>
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13" style="color:var(--amber)">63%</div><div style="font-size:10px;color:var(--text-3)">English</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card card-sm">
-          <div class="row jbet" style="margin-bottom:9px">
-            <div><div class="fw7 fs14">Grade 3</div><div class="fs12 c3">3 sections · 74 students</div></div>
-            <span class="badge b-red">58% avg</span>
-          </div>
-          <div class="row gap8">
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13" style="color:var(--red)">54%</div><div style="font-size:10px;color:var(--text-3)">Math</div>
-            </div>
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13" style="color:var(--amber)">63%</div><div style="font-size:10px;color:var(--text-3)">Urdu</div>
-            </div>
-            <div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
-              <div class="fw7 fs13" style="color:var(--red)">57%</div><div style="font-size:10px;color:var(--text-3)">English</div>
-            </div>
-          </div>
-        </div>
+      <div class="sec-head"><h2>Grade Breakdown · جماعت کی کارکردگی</h2></div>
+      <div class="col gap10" style="margin-top:9px" id="admin-grade-breakdown">
+        <div class="fs13 c3" style="text-align:center;padding:12px">Loading…</div>
       </div>
     </div>
 
@@ -1364,11 +1329,24 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
     <!-- STUDENTS PANEL -->
     <div id="admin-panel-students" hidden>
-      <div class="row jbet" style="align-items:center;margin-bottom:4px">
+      <div class="row jbet" style="align-items:center;margin-bottom:8px">
         <div class="nunito fw8" style="font-size:18px">Students · طلباء</div>
         <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="renderAdminStudents()">↻ Refresh</button>
       </div>
-      <div class="fs13 c3" style="margin-bottom:12px">Tap <b>Clear Data</b> to reset a student's assessment history.</div>
+      <!-- Search + Grade filter -->
+      <div class="row gap8" style="margin-bottom:10px;flex-wrap:wrap">
+        <input id="admin-stu-search" type="text" placeholder="Search by name…" oninput="renderAdminStudents()"
+          style="flex:1;min-width:120px;padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-1);font-size:13px;font-family:inherit">
+        <select id="admin-stu-grade" onchange="renderAdminStudents()"
+          style="padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--surface-2);color:var(--text-1);font-size:13px;font-family:inherit">
+          <option value="">All Grades</option>
+          <option value="1">Grade 1</option><option value="2">Grade 2</option>
+          <option value="3">Grade 3</option><option value="4">Grade 4</option>
+          <option value="5">Grade 5</option><option value="6">Grade 6</option>
+          <option value="7">Grade 7</option><option value="8">Grade 8</option>
+        </select>
+      </div>
+      <div class="fs13 c3" style="margin-bottom:10px">Tap <b>Clear Data</b> to reset a student's assessment history.</div>
       <div id="admin-student-list" class="col gap10">
         <div class="fs13 c3" style="text-align:center;padding:24px">Loading students…</div>
       </div>
@@ -1803,7 +1781,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
       <div class="col gap6">
         <label class="fs13 fw6">School Code (from TAKMIL) · اسکول کوڈ</label>
-        <input id="inp-school-code" type="text" placeholder="e.g. TKMIL-PB-042"
+        <input id="inp-school-code" type="text" placeholder="e.g. TAKMIL-PB-042"
           style="border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:14px;background:var(--surface-2);color:var(--text-1);width:100%;box-sizing:border-box">
       </div>
 
@@ -2058,6 +2036,11 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 </div><!-- /app -->
 
 <script>
+/* ══════════════════════════════════════════════════════
+   TAKMIL-LEARN  ·  v32
+   25 bug fixes applied — see changelog in source
+   ══════════════════════════════════════════════════════ */
+
 /* ── NAVIGATION ─────────────────────────────────────── */
 function nav(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -3836,10 +3819,10 @@ function renderMathQ(q) {
   if (mPctLbl) mPctLbl.textContent = `${pct}% مکمل`;
 
   // Question text
-  const qText = document.querySelector('#s-assess .nunito.fw8[style*="28px"]');
+  const qText = document.getElementById('math-q-text') || document.querySelector('#s-assess .nunito.fw8[style*="28px"]');
   if (qText) qText.textContent = q.text;
-  const qUrdu = document.querySelector('#s-assess .fs13.c3[style*="center"]');
-  if (qUrdu) qUrdu.textContent = q.textUrdu;
+  const qUrdu = document.getElementById('math-q-urdu') || document.querySelector('#s-assess .fs13.c3[style*="center"]');
+  if (qUrdu) qUrdu.textContent = q.textUrdu || '';
 
   // Dot grid
   const grid = document.getElementById('dot-grid');
@@ -3856,7 +3839,7 @@ function renderMathQ(q) {
       }
       grid.appendChild(wrap);
       const sub = document.querySelector('#s-assess .fs12.c3[style*="center"]');
-      if (sub) sub.textContent = `${q.rows} قطاریں × ${q.cols} = ؟`;
+      if (sub) { sub.textContent = `${q.rows} قطاریں × ${q.cols} = ؟`; sub.style.direction = 'rtl'; }
     }
   }
 
@@ -4076,7 +4059,8 @@ function renderEnglishQ(q) {
   setTimeout(() => {
     speak(q.text, q.textUrdu);
     if (q.type === 'phonics') {
-      setTimeout(() => speakOnly(q.soundLabel || q.letterFocus, 'en'), 1600);
+      const ttsText = q.letterFocus ? 'the letter ' + q.letterFocus + (q.soundLabel ? ', sound: ' + q.soundLabel : '') : (q.soundLabel || '');
+      setTimeout(() => speakOnly(ttsText, 'en'), 1600);
     }
   }, 400);
 }
@@ -4188,26 +4172,56 @@ function checkIntervention() {
 }
 
 function renderIntervention(q) {
+  const targetScreen = q.subject === 'english' ? 's-eng-assess' : q.subject === 'urdu' ? 's-urdu-assess' : 's-assess';
+
   const bubble = document.querySelector('#s-intervention .bubble .fw7');
   if (bubble) bubble.textContent = `فکر نہ کریں! "${q.skillUrdu || q.skill}" سمجھتے ہیں۔`;
+  const bubbleSub = document.querySelector('#s-intervention .bubble .fs13');
+  if (bubbleSub) bubbleSub.textContent = q.hint || (q.subject === 'urdu' ? 'اردو میں ہم مل کر سیکھیں گے۔' : q.subject === 'english' ? 'Let\'s understand this together.' : 'فکر نہ کریں! ضرب کو آسانی سے سمجھیں۔');
+
   // AI tutor speaks (Urdu only)
   setTimeout(() => {
     speak('', 'فکر نہ کریں! میں سمجھاتا ہوں۔');
   }, 500);
 
-  const concept = document.querySelector('#s-intervention .card .nunito.fw7');
-  if (concept) concept.textContent = q.skill + ' — Let\'s understand it step by step.';
+  // Replace the Key Concept card with subject-appropriate content
+  const conceptCard = document.querySelector('#s-intervention .card');
+  if (conceptCard) {
+    const conceptTitle = conceptCard.querySelector('.nunito.fw7');
+    if (conceptTitle) conceptTitle.textContent = q.skill + (q.skillUrdu ? ' · ' + q.skillUrdu : '') + ' — Let\'s understand it step by step.';
+    const explainEl = conceptCard.querySelector('.fs14.c2');
+    if (explainEl) explainEl.innerHTML = q.explain || '';
+  }
 
-  const explainEl = document.querySelector('#s-intervention .fs14.c2 strong')?.parentElement;
-  if (explainEl) explainEl.innerHTML = q.explain;
+  // Replace the step-by-step section with hint text
+  const stepsCard = document.querySelectorAll('#s-intervention .card')[1];
+  if (stepsCard && q.hint) {
+    stepsCard.innerHTML = `
+      <div class="fs11 fw7 c3" style="text-transform:uppercase;letter-spacing:.06em;margin-bottom:11px">Hint · اشارہ</div>
+      <div class="fs14" style="line-height:1.7">${q.hint}</div>`;
+  }
+
+  // Replace memory trick with subject tip
+  const trickCard = document.querySelectorAll('#s-intervention .card')[2];
+  if (trickCard) {
+    const tip = q.explain || q.hint || '';
+    trickCard.style.background = 'var(--accent-lt)';
+    trickCard.style.borderColor = 'var(--accent)';
+    trickCard.innerHTML = `
+      <div class="row gap8" style="margin-bottom:6px">
+        <span style="font-size:17px">💡</span>
+        <span class="fw7 fs14" style="color:var(--accent)">Remember · یاد رکھیں</span>
+      </div>
+      <div class="fs14 c2">${tip}</div>`;
+  }
 
   // Back button leads to correct screen
   const backBtn = document.querySelector('#s-intervention .back-btn');
-  if (backBtn) backBtn.onclick = () => nav(q.subject === 'english' ? 's-eng-assess' : q.subject === 'urdu' ? 's-urdu-assess' : 's-assess');
+  if (backBtn) backBtn.onclick = () => nav(targetScreen);
   const resumeBtn = document.querySelector('#s-intervention .btn.btn-primary');
-  if (resumeBtn) resumeBtn.onclick = () => nav(q.subject === 'english' ? 's-eng-assess' : q.subject === 'urdu' ? 's-urdu-assess' : 's-assess');
+  if (resumeBtn) resumeBtn.onclick = () => nav(targetScreen);
 
-  // Update practice question to be next in bank
+  // Update practice question to be next in bank (same subject, similar difficulty)
   const pq = QBANK[q.subject]?.find(x => x.diff === q.diff && x.id !== q.id);
   if (pq) {
     const pLabel = document.querySelector('#s-intervention .nunito.fw8[style*="22px"]');
@@ -4410,7 +4424,8 @@ function showSyncToast(ok) {
    For production: extract to /sw.js served at the app's root.
 ────────────────────────────────────────────────────── */
 const SW_CACHE   = 'takmil-learn-v1';
-const SW_ASSETS  = [location.href]; // single-file app — cache itself
+// Cache both the current URL and the root path to handle URL variations
+const SW_ASSETS  = [...new Set([location.href, location.origin + location.pathname])]; // single-file app
 
 const SW_CODE = `
 const CACHE   = '${SW_CACHE}';
@@ -4447,12 +4462,16 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       caches.match(e.request).then(r => {
         if (r) return r;
+        // For navigate requests, try to serve the cached app shell
+        if (e.request.mode === 'navigate') {
+          return caches.match(ASSETS[0]) || fetch(e.request);
+        }
         return fetch(e.request).then(nr => {
           if (!nr || nr.status !== 200 || nr.type === 'opaque') return nr;
           const clone = nr.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
           return nr;
-        });
+        }).catch(() => caches.match(ASSETS[0]));
       })
     );
   }
@@ -4542,10 +4561,16 @@ window.addEventListener('beforeinstallprompt', e => {
 
 function installPWA() {
   if (!_deferredInstallPrompt) {
-    // Fallback instructions for browsers that don't fire the event
+    // Provide platform-specific instructions
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isAndroid = /Android/.test(navigator.userAgent);
+    let msg = 'To install: ';
+    if (isIOS)     msg += 'tap Share (□↑) → "Add to Home Screen"';
+    else if (isAndroid) msg += 'tap Menu (⋮) → "Add to Home screen"';
+    else           msg += 'use your browser\'s install option';
     showSyncToast(true);
     const t = document.getElementById('sync-toast');
-    if (t) t.textContent = 'Tap ⋮ → "Add to Home screen" to install';
+    if (t) { t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._t); t._t = setTimeout(() => t.style.opacity = '0', 4500); }
     return;
   }
   _deferredInstallPrompt.prompt();
@@ -4557,6 +4582,14 @@ function installPWA() {
     }
     _deferredInstallPrompt = null;
   });
+}
+
+// Show install banner immediately on iOS Safari where beforeinstallprompt never fires
+if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream && !window.navigator.standalone) {
+  window.addEventListener('DOMContentLoaded', () => {
+    const banner = document.getElementById('install-banner');
+    if (banner) banner.hidden = false;
+  }, { once: true });
 }
 
 window.addEventListener('appinstalled', () => {
@@ -4842,15 +4875,15 @@ function bnavSwitch(tab) {
     initLearnUrdu();
   } else if (tab === 'progress') {
     openProgressScreen();
-    // Reset bnav to home when they come back
+  } else if (tab === 'profile') {
+    openStudentProfile();
+    // Reset active state to home since profile uses an alert, not a screen
     setTimeout(() => {
-      ['home','subjects','progress','profile'].forEach(t => {
+      ['home','learn','progress','profile'].forEach(t => {
         const btn = document.getElementById('bnav-' + t);
         if (btn) btn.classList.toggle('on', t === 'home');
       });
-    }, 300);
-  } else if (tab === 'profile') {
-    openStudentProfile();
+    }, 100);
   }
 }
 
@@ -4905,7 +4938,8 @@ async function renderAdminOverview() {
 
     const allResponses = await _getAllResponsesWithLSBackup();
     const totalResp    = allResponses.length;
-    const totalCorr    = allResponses.filter(r => r.correct).length;
+    // Normalize correct field: may be boolean true or string 'true'
+    const totalCorr    = allResponses.filter(r => r.correct === true || r.correct === 'true').length;
     const schoolAvg    = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
 
     // per-student at-risk count
@@ -4935,6 +4969,51 @@ async function renderAdminOverview() {
     const ls = localStorage.getItem('takmil-last-sync');
     const syncLbl = ls ? 'Last sync: ' + new Date(parseInt(ls)).toLocaleString() : 'Last sync: never · کبھی نہیں';
     setEl('admin-last-sync', syncLbl);
+  } catch(e) {}
+
+  // Dynamic grade breakdown (BUG 22)
+  try {
+    const roster       = _getRoster();
+    const allResponses = await _getAllResponsesWithLSBackup();
+    const breakdownEl  = document.getElementById('admin-grade-breakdown');
+    if (breakdownEl) {
+      // Group students by grade
+      const byGrade = {};
+      roster.forEach(s => {
+        const g = (s && s.grade) ? String(s.grade).replace(/\D/g,'') : '?';
+        if (!byGrade[g]) byGrade[g] = [];
+        byGrade[g].push(typeof s === 'object' ? s.name : s);
+      });
+      const grades = Object.keys(byGrade).filter(g => g !== '?').sort((a,b) => +a - +b);
+      if (!grades.length) {
+        breakdownEl.innerHTML = '<div class="fs13 c3" style="text-align:center;padding:12px">No grade data yet. Add students with grades assigned.</div>';
+      } else {
+        breakdownEl.innerHTML = grades.map(g => {
+          const names   = byGrade[g];
+          const gradeRecs = allResponses.filter(r => names.some(n => (r.studentId || '').toLowerCase() === n.toLowerCase()));
+          const tot     = gradeRecs.length;
+          const corr    = gradeRecs.filter(r => r.correct).length;
+          const avg     = tot ? Math.round(corr / tot * 100) : null;
+          const cls     = avg === null ? 'b-pri' : avg >= 70 ? 'b-green' : avg >= 50 ? 'b-amber' : 'b-red';
+          const subjData = ['math','urdu','english'].map(subj => {
+            const sr  = gradeRecs.filter(r => r.subject === subj);
+            const sp  = sr.length ? Math.round(sr.filter(r => r.correct).length / sr.length * 100) : null;
+            const col = sp === null ? 'var(--text-3)' : sp >= 70 ? 'var(--green)' : sp >= 50 ? 'var(--amber)' : 'var(--red)';
+            return `<div style="flex:1;text-align:center;background:var(--surface-2);border-radius:8px;padding:7px 4px">
+              <div class="fw7 fs13" style="color:${col}">${sp !== null ? sp + '%' : '—'}</div>
+              <div style="font-size:10px;color:var(--text-3)">${subj.charAt(0).toUpperCase() + subj.slice(1)}</div>
+            </div>`;
+          }).join('');
+          return `<div class="card card-sm">
+            <div class="row jbet" style="margin-bottom:9px">
+              <div><div class="fw7 fs14">Grade ${g}</div><div class="fs12 c3">${names.length} student${names.length!==1?'s':''} · ${tot} responses</div></div>
+              <span class="badge ${cls}">${avg !== null ? avg + '% avg' : 'No data'}</span>
+            </div>
+            <div class="row gap8">${subjData}</div>
+          </div>`;
+        }).join('');
+      }
+    }
   } catch(e) {}
 }
 
@@ -4977,6 +5056,9 @@ async function renderAdminStudents() {
   if (!container) return;
   container.innerHTML = '<div class="fs13 c3" style="text-align:center;padding:16px">Loading…</div>';
 
+  const searchVal = (document.getElementById('admin-stu-search')?.value || '').toLowerCase().trim();
+  const gradeVal  = (document.getElementById('admin-stu-grade')?.value || '');
+
   // Get roster
   let roster = [];
   try { roster = JSON.parse(localStorage.getItem('takmil-roster') || '[]'); } catch(e) {}
@@ -4985,27 +5067,42 @@ async function renderAdminStudents() {
     return;
   }
 
+  // Apply filters
+  let filtered = roster;
+  if (gradeVal) filtered = filtered.filter(s => s && typeof s === 'object' && String(s.grade || '').replace(/\D/g,'') === gradeVal);
+  if (searchVal) filtered = filtered.filter(s => { const n = typeof s === 'object' ? s.name : s; return n.toLowerCase().includes(searchVal); });
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="fs13 c3" style="text-align:center;padding:24px">No students match your filter.</div>';
+    return;
+  }
+
   // Get all responses: IDB + localStorage backup for all students
   const allResponses = await _getAllResponsesWithLSBackup();
 
   // Build cards
-  const cards = roster.map(s => {
+  const cards = filtered.map(s => {
     const name  = typeof s === 'object' ? s.name : s;
-    const grade = (s && s.grade) ? 'Grade ' + s.grade.replace(/\D/g,'') : '—';
+    const grade = (s && s.grade) ? 'Grade ' + String(s.grade).replace(/\D/g,'') : '—';
     const recs  = allResponses.filter(r => r.studentId && r.studentId.toLowerCase() === name.toLowerCase());
     const total = recs.length;
     const correct = recs.filter(r => r.correct).length;
-    const pct = total ? Math.round(correct/total*100) : 0;
+    const pct = total ? Math.round(correct/total*100) : null;
     const subjects = [...new Set(recs.map(r => r.subject))].join(', ') || '—';
+    // Performance badge (BUG 19)
+    const [badgeCls, badgeLbl] = pct === null ? ['b-pri','No data'] : pct >= 70 ? ['b-green','On Track'] : pct >= 50 ? ['b-amber','Developing'] : ['b-red','At Risk'];
 
     return `<div class="card card-sm">
       <div class="row jbet" style="align-items:flex-start">
-        <div>
-          <div class="fw7 fs14">${name}</div>
-          <div class="fs12 c3">${grade} · ${total} responses · ${pct}% correct</div>
+        <div style="flex:1;min-width:0">
+          <div class="row gap8" style="align-items:center;flex-wrap:wrap">
+            <div class="fw7 fs14">${name}</div>
+            <span class="badge ${badgeCls}" style="font-size:10.5px">${badgeLbl}</span>
+          </div>
+          <div class="fs12 c3" style="margin-top:2px">${grade} · ${total} responses · ${pct !== null ? pct + '% correct' : 'not started'}</div>
           <div class="fs11 c3" style="margin-top:2px">Subjects: ${subjects}</div>
         </div>
-        <button class="btn" style="background:var(--red-bg,#FEE2E2);color:#DC2626;font-size:11.5px;padding:6px 10px;flex-shrink:0"
+        <button class="btn" style="background:var(--red-bg,#FEE2E2);color:#DC2626;font-size:11.5px;padding:6px 10px;flex-shrink:0;margin-left:8px"
                 onclick="clearStudentData('${name.replace(/'/g,"\\'")}')">
           🗑 Clear Data
         </button>
@@ -5024,7 +5121,7 @@ async function renderAdminAnalytics() {
 
   // ── Summary stats ──────────────────────────────────────────────
   const totalResp = allResponses.length;
-  const totalCorr = allResponses.filter(r => r.correct).length;
+  const totalCorr = allResponses.filter(r => r.correct === true || r.correct === 'true').length;
   const schoolAvg = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
   const activeToday = new Set(allResponses.filter(r => new Date(r.ts).toDateString() === todayStr).map(r => r.studentId)).size;
 
@@ -5454,17 +5551,26 @@ async function _getMyResponses() {
   try {
     const d = await openDB();
     idbRows = await new Promise(resolve => {
-      const tx  = d.transaction('responses', 'readonly');
-      const st  = tx.objectStore('responses');
-      if (st.indexNames.contains('studentId')) {
-        const req = st.index('studentId').getAll(currentStudentId);
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror   = () => resolve([]);
-      } else {
-        const req = st.getAll();
-        req.onsuccess = () => resolve((req.result || []).filter(r => r.studentId === currentStudentId));
-        req.onerror   = () => resolve([]);
-      }
+      try {
+        const tx  = d.transaction('responses', 'readonly');
+        const st  = tx.objectStore('responses');
+        if (st.indexNames.contains('studentId')) {
+          try {
+            const req = st.index('studentId').getAll(currentStudentId);
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror   = () => resolve([]);
+          } catch(idxErr) {
+            // Index exists but query failed — fall back to full scan
+            const req = st.getAll();
+            req.onsuccess = () => resolve((req.result || []).filter(r => r.studentId === currentStudentId));
+            req.onerror   = () => resolve([]);
+          }
+        } else {
+          const req = st.getAll();
+          req.onsuccess = () => resolve((req.result || []).filter(r => r.studentId === currentStudentId));
+          req.onerror   = () => resolve([]);
+        }
+      } catch(txErr) { resolve([]); }
     });
   } catch(e) { idbRows = []; }
   // Merge localStorage backup — deduplicate by (subject+qId+ts)
@@ -5509,11 +5615,21 @@ async function openProgressScreen() {
 }
 
 async function renderProgressScreen() {
-  const [masteryRows, responses] = await Promise.all([_getAllMastery(), _getMyResponses()]);
+  let masteryRows, responses;
+  try {
+    [masteryRows, responses] = await Promise.all([_getAllMastery(), _getMyResponses()]);
+  } catch(e) {
+    masteryRows = []; responses = [];
+    console.warn('renderProgressScreen error', e);
+  }
 
-  // Build mastery lookup
+  // Build mastery lookup — use only questions this student actually answered
+  const answeredQIds = new Set(responses.map(r => r.qId).filter(Boolean));
   const masteryMap = {};
-  masteryRows.forEach(m => { masteryMap[m.qId] = m; });
+  masteryRows.forEach(m => {
+    // Only include mastery for questions this student answered (avoids cross-student pollution)
+    if (answeredQIds.has(m.qId)) masteryMap[m.qId] = m;
+  });
 
   // Group responses into sessions by calendar day
   const dayMap = {};
@@ -5804,6 +5920,7 @@ function teacherTabSwitch(tab) {
     const p = document.getElementById('t-panel-' + t);
     if (p) p.hidden = (t !== tab);
   });
+  if (tab === 'class')     renderTeacherDashboard();
   if (tab === 'students')  openManageStudents();
   if (tab === 'progress')  renderTeacherProgress();
   if (tab === 'sync')      renderTeacherSync();
@@ -5814,18 +5931,26 @@ async function renderTeacherProgress() {
   if (!container) return;
   container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-3);font-size:13px">Loading…</div>';
 
+  const subjectFilter = (document.getElementById('t-prog-subject-filter')?.value || '');
+  const gradeFilter   = (document.getElementById('t-prog-grade-filter')?.value || '');
+
   const roster = _getRoster();
   const allResponses = await _getAllResponsesWithLSBackup();
-  const subjects = ['math','urdu','english'];
+  const subjects = subjectFilter ? [subjectFilter] : ['math','urdu','english'];
   const subjectLabel = { math:'Math · حساب', urdu:'Urdu · اردو', english:'English' };
   const subjectColor = { math:'#16a34a', urdu:'#d97706', english:'#2563eb' };
 
-  if (!roster.length) {
-    container.innerHTML = '<div style="text-align:center;padding:28px;color:var(--text-3);font-size:13px">No students in roster.</div>';
+  // Apply grade filter
+  const filteredRoster = gradeFilter
+    ? roster.filter(s => (typeof s === 'object' && s.grade) ? String(s.grade).replace(/\D/g,'') === gradeFilter : false)
+    : roster;
+
+  if (!filteredRoster.length) {
+    container.innerHTML = '<div style="text-align:center;padding:28px;color:var(--text-3);font-size:13px">' + (gradeFilter ? 'No students in Grade ' + gradeFilter + '.' : 'No students in roster.') + '</div>';
     return;
   }
 
-  const cards = roster.map(s => {
+  const cards = filteredRoster.map(s => {
     const nm    = typeof s === 'object' ? s.name : s;
     const grade = (s && s.grade) ? s.grade.replace(/\D/g,'') : '—';
     const recs  = allResponses.filter(r => (r.studentId || '').toLowerCase() === nm.toLowerCase());
@@ -5927,15 +6052,24 @@ function teacherExportJSON() {
 
 async function openTeacherDashboard() {
   nav('s-teacher');
+  // teacherTabSwitch('class') calls renderTeacherDashboard() internally
   teacherTabSwitch('class');
-  await renderTeacherDashboard();
 }
 
 async function renderTeacherDashboard() {
-  const roster = _getRoster();
+  // Clear loading state
+  const loadingEl = document.querySelector('#t-student-list div[style*="Loading"]');
+  if (loadingEl) loadingEl.textContent = 'Fetching data…';
 
-  // Fetch all responses: IDB + localStorage backup for all students
-  let allResponses = await _getAllResponsesWithLSBackup();
+  let roster, allResponses;
+  try {
+    roster = _getRoster();
+    allResponses = await _getAllResponsesWithLSBackup();
+  } catch(e) {
+    roster = _getRoster();
+    allResponses = [];
+    console.warn('renderTeacherDashboard fetch error', e);
+  }
 
   const todayStr  = new Date().toDateString();
   const dateLabel = new Date().toLocaleDateString('en-US', { weekday:'long', day:'numeric', month:'short', year:'numeric' });
@@ -5948,8 +6082,11 @@ async function renderTeacherDashboard() {
   const byId = {};
   const nameToId = {};  // name (lowercase) → roster id
   roster.forEach(s => {
-    byId[s.id] = { name:s.name, grade:s.grade, all:[], today:[] };
-    nameToId[s.name.toLowerCase()] = s.id;
+    // Normalize: legacy entries may be plain strings
+    if (typeof s === 'string') s = { id: 'str-' + s, name: s, grade: '?' };
+    const sid = s.id || ('str-' + s.name);
+    byId[sid] = { name: s.name || s, grade: s.grade || '?', all:[], today:[] };
+    nameToId[(s.name || '').toLowerCase()] = sid;
   });
 
   allResponses.forEach(r => {
@@ -6056,13 +6193,60 @@ async function renderTeacherDashboard() {
         const sub = acc !== null
           ? `${s.total} question${s.total !== 1 ? 's' : ''} · ${acc}% overall${s.todayTotal ? ' · ' + s.todayTotal + ' today' : ''}`
           : 'No assessments yet';
-        return `<div class="stu-row">
+        return `<div class="stu-row" style="cursor:pointer" onclick="openStudentDetailTeacher('${r.name.replace(/'/g,"\\'")}')">
           <div class="avatar" style="background:var(--primary-lt);color:var(--primary)">${ini}</div>
           <div class="f1"><div class="fw7 fs14">${r.name}</div><div class="fs12 c3">${sub}</div></div>
           <span class="badge ${cls}">${lbl}</span>
         </div>`;
       }).join('');
     }
+  }
+}
+
+async function openStudentDetailTeacher(name) {
+  // Navigate to student detail and populate it with real data
+  nav('s-stu-detail');
+  const roster = _getRoster();
+  const entry  = roster.find(s => (typeof s === 'object' ? s.name : s) === name);
+  const grade  = entry && entry.grade ? 'Grade ' + entry.grade : '—';
+  const init   = name.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+
+  const avatarEl = document.querySelector('#s-stu-detail .avatar');
+  if (avatarEl) avatarEl.textContent = init;
+  const nameEl = document.querySelector('#s-stu-detail .nunito.fw8');
+  if (nameEl) nameEl.textContent = name;
+  const gradeEl = document.querySelector('#s-stu-detail .fs13.c3');
+  if (gradeEl) gradeEl.textContent = grade;
+
+  const allResponses = await _getAllResponsesWithLSBackup();
+  const recs = allResponses.filter(r => (r.studentId || '').toLowerCase() === name.toLowerCase());
+  const subjects = ['math', 'urdu', 'english'];
+  const subjectLabel = { math:'Math', urdu:'Urdu', english:'English' };
+  const subjectBadge = { math:'b-pri', urdu:'b-amber', english:'b-green' };
+
+  const badgesWrap = document.querySelector('#s-stu-detail .row.gap8');
+  if (badgesWrap) {
+    badgesWrap.innerHTML = subjects.map(subj => {
+      const sr  = recs.filter(r => r.subject === subj);
+      const pct = sr.length ? Math.round(sr.filter(r => r.correct).length / sr.length * 100) : null;
+      const cls = pct === null ? 'b-pri' : pct >= 70 ? 'b-green' : pct >= 50 ? 'b-amber' : 'b-red';
+      return `<span class="badge ${cls}">${subjectLabel[subj]}: ${pct !== null ? pct + '%' : '—'}</span>`;
+    }).join('');
+  }
+
+  const insightEl = document.querySelector('#s-stu-detail .fs14.c2[style*="1.65"]');
+  if (insightEl) {
+    const total   = recs.length;
+    const correct = recs.filter(r => r.correct).length;
+    const overall = total ? Math.round(correct / total * 100) : null;
+    const weakSubj = subjects
+      .map(s => { const r = recs.filter(x => x.subject === s); return { s, pct: r.length ? Math.round(r.filter(x => x.correct).length / r.length * 100) : 100 }; })
+      .sort((a,b) => a.pct - b.pct)[0];
+    insightEl.innerHTML = overall === null
+      ? 'No assessment data yet. Encourage this student to start.'
+      : (overall >= 70
+          ? `${name} is performing well overall (${overall}%). Keep up the excellent work!`
+          : `${name} scored ${overall}% overall. Focus area: <strong>${weakSubj?.s || 'Math'} (${weakSubj?.pct || 0}%)</strong>. Consider additional practice.`);
   }
 }
 
