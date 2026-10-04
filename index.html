@@ -102,12 +102,16 @@
   font-size: 28px;
   line-height: 1.3;
   color: var(--text-1);
+  display: block;
+  direction: rtl;
 }
 .alpha-tile .alph-name {
   font-size: 10px;
   color: var(--text-3);
-  margin-top: 3px;
+  margin-top: 4px;
   font-weight: 600;
+  display: block;
+  direction: ltr;
 }
 .quiz-prompt {
   background: var(--primary);
@@ -154,13 +158,17 @@
   font-family: 'Noto Nastaliq Urdu', serif;
   font-size: 46px;
   line-height: 1.2;
-  color: var(--text-1);
+  display: block;
+  direction: rtl;
+  min-height: 60px;
 }
 .quiz-choice .choice-name {
   font-size: 11px;
   color: var(--text-3);
-  margin-top: 4px;
+  margin-top: 6px;
   font-weight: 600;
+  display: block;
+  direction: ltr;
 }
 .quiz-choice.correct {
   border-color: var(--green);
@@ -1391,6 +1399,10 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
         <div id="an-sparkline-wrap" style="overflow-x:auto"></div>
       </div>
 
+      <!-- Per-grade breakdown -->
+      <div class="fw7 fs13" style="margin-bottom:8px">Grade Breakdown · درجہ وار خلاصہ</div>
+      <div id="an-grade-breakdown" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px"></div>
+
       <!-- Per-student performance table -->
       <div class="card card-sm" style="padding:14px">
         <div class="fw7 fs13" style="margin-bottom:10px">Student Performance · طلباء کی کارکردگی</div>
@@ -1478,7 +1490,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     <!-- Vocab spotlight (top of question) -->
     <div class="card row gap12" id="u-vocab-card" style="background:var(--primary-lt);border:1.5px solid var(--primary)">
       <div style="flex-shrink:0;text-align:center;min-width:60px">
-        <div class="u-font fw7" style="font-size:26px;color:var(--primary);line-height:2">محنتی</div>
+        <div class="u-font fw7" style="font-size:26px;color:var(--primary);line-height:2;direction:rtl;text-align:center">محنتی</div>
         <div class="fs11 c3" style="margin-top:0">mih-na-ti</div>
       </div>
       <div style="width:1px;background:var(--border);flex-shrink:0"></div>
@@ -2021,7 +2033,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L12 3l9 9"/><path d="M9 21V9h6v12"/></svg>Home
     </button>
     <button class="bnav-item">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Subjects
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Learn
     </button>
     <button class="bnav-item on">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
@@ -2037,7 +2049,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v32
+   TAKMIL-LEARN  ·  v33
    25 bug fixes applied — see changelog in source
    ══════════════════════════════════════════════════════ */
 
@@ -2991,6 +3003,8 @@ const QBANK = {
     {
       id:'u-comp-1-1', subject:'urdu', skill:'Comprehension', skillUrdu:'فہم عبارت',
       diff:1,
+      romanUrdu:'meh-na-ti',
+      phonics:[{ur:'م',name:'meem'},{ur:'ح',name:'hay'},{ur:'ن',name:'noon'},{ur:'ت',name:'tay'},{ur:'ی',name:'ye'}],
       passage:'احمد ایک محنتی طالب علم ہے۔ وہ روز صبح سویرے اٹھتا ہے اور اسکول جاتا ہے۔ وہ اپنی کتابیں بڑی توجہ سے پڑھتا ہے۔ اس کے استاد اس سے بہت خوش رہتے ہیں۔',
       passageTrans:'Ahmad is a hardworking student. He wakes up every morning and goes to school. He reads his books with great care. His teachers are very pleased with him.',
       text:'احمد کیسا طالب علم ہے؟', textEn:'What kind of student is Ahmad?',
@@ -3006,6 +3020,8 @@ const QBANK = {
     {
       id:'u-comp-1-2', subject:'urdu', skill:'Comprehension', skillUrdu:'فہم عبارت',
       diff:1,
+      romanUrdu:'khoob-su-rat',
+      phonics:[{ur:'خ',name:'khay'},{ur:'و',name:'wao'},{ur:'ب',name:'bay'},{ur:'س',name:'seen'},{ur:'و',name:'wao'},{ur:'ر',name:'ray'},{ur:'ت',name:'tay'}],
       passage:'بلبل ایک خوبصورت پرندہ ہے۔ وہ درخت کی ٹہنی پر بیٹھ کر گاتی ہے۔ اس کی آواز بہت میٹھی ہوتی ہے۔ سب لوگ اسے سننا پسند کرتے ہیں۔',
       passageTrans:'The nightingale is a beautiful bird. She sits on a tree branch and sings. Her voice is very sweet. Everyone loves to listen to her.',
       text:'بلبل کہاں بیٹھ کر گاتی ہے؟', textEn:'Where does the nightingale sit and sing?',
@@ -3952,6 +3968,18 @@ function renderUrduQ(q) {
     });
   }
 
+  // Update Roman Urdu phonics text
+  const romanEl = document.querySelector('#s-urdu-assess .fs11.c3, #s-urdu-q .fs11.c3');
+  if (romanEl && q.romanUrdu) romanEl.textContent = q.romanUrdu;
+
+  // Update phonics breakdown
+  const phonicsCardEl = document.getElementById('u-phonics-card');
+  if (phonicsCardEl && q.phonics) {
+    phonicsCardEl.innerHTML = q.phonics.map(p =>
+      `<div class="phonics-cell"><span class="u-font" style="font-size:22px">${p.ur}</span><span class="fs10 c3">${p.name}</span></div>`
+    ).join('');
+  }
+
   // TTS
   setTimeout(() => {
     if (isLetter) {
@@ -4489,37 +4517,54 @@ function setSWStatus(ok, text) {
   if (lbl) lbl.textContent = text;
 }
 
-(function registerSW() {
+async function registerSW() {
   if (!('serviceWorker' in navigator)) {
     setSWStatus(false, 'Service worker not supported in this browser');
     return;
   }
-  try {
-    const blob   = new Blob([SW_CODE], { type: 'application/javascript' });
-    const swURL  = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swURL)
-      .then(reg => {
-        setSWStatus(true, 'Offline cache active · آف لائن کیش فعال');
-        // Listen for updates
-        reg.addEventListener('updatefound', () => {
-          const w = reg.installing;
-          w?.addEventListener('statechange', () => {
-            if (w.state === 'installed' && navigator.serviceWorker.controller) {
-              showUpdateBanner();
-            }
-          });
-        });
-      })
-      .catch(err => {
-        // Blob SW fails in some artifact sandboxes — fall back gracefully
-        setSWStatus(false, 'Cache unavailable in preview · Production: extract sw.js');
-        console.info('SW blob registration note:', err.message);
-      });
 
+  function attachUpdateListener(reg) {
+    reg.addEventListener('updatefound', () => {
+      const w = reg.installing;
+      w?.addEventListener('statechange', () => {
+        if (w.state === 'installed' && navigator.serviceWorker.controller) {
+          showUpdateBanner();
+        }
+      });
+    });
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       setSWStatus(true, 'Offline cache updated ✓');
     });
-  } catch (err) {
+  }
+
+  // Try same-origin /sw.js first (works on Android Chrome — blob URLs are blocked there)
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    setSWStatus(true, 'Offline cache active · آف لائن کیش فعال');
+    attachUpdateListener(reg);
+    return;
+  } catch(e) {
+    console.info('sw.js not found, trying blob fallback…', e.message);
+  }
+
+  // Fallback: blob URL (works on desktop Chrome, Firefox, Safari but blocked on Android Chrome)
+  try {
+    const blob  = new Blob([SW_CODE], { type: 'application/javascript' });
+    const swURL = URL.createObjectURL(blob);
+    const reg   = await navigator.serviceWorker.register(swURL);
+    setSWStatus(true, 'Offline cache active · آف لائن کیش فعال');
+    attachUpdateListener(reg);
+  } catch(err) {
+    // Blob SW fails on Android Chrome — deploy sw.js alongside index.html for full offline support
+    setSWStatus(false, 'Cache unavailable · Deploy sw.js for offline support');
+    console.info('SW blob registration note:', err.message);
+  }
+}
+
+(function() {
+  try {
+    registerSW();
+  } catch(e) {
     setSWStatus(false, 'SW setup skipped');
   }
 })();
@@ -4937,9 +4982,9 @@ async function renderAdminOverview() {
     setEl('admin-stat-students', studentCount || '0');
 
     const allResponses = await _getAllResponsesWithLSBackup();
-    const totalResp    = allResponses.length;
-    // Normalize correct field: may be boolean true or string 'true'
-    const totalCorr    = allResponses.filter(r => r.correct === true || r.correct === 'true').length;
+    // Normalize correct field: may be boolean true, string 'true', or number 1
+    const totalCorr    = allResponses.filter(r => r.correct === true || r.correct === 'true' || r.correct === 1).length;
+    const totalResp    = allResponses.filter(r => r.correct !== undefined && r.correct !== null).length;
     const schoolAvg    = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
 
     // per-student at-risk count
@@ -5094,10 +5139,10 @@ async function renderAdminStudents() {
 
     return `<div class="card card-sm">
       <div class="row jbet" style="align-items:flex-start">
-        <div style="flex:1;min-width:0">
+        <div style="flex:1;min-width:0;overflow:hidden">
           <div class="row gap8" style="align-items:center;flex-wrap:wrap">
-            <div class="fw7 fs14">${name}</div>
-            <span class="badge ${badgeCls}" style="font-size:10.5px">${badgeLbl}</span>
+            <div class="fw7 fs14" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(100% - 90px)">${name}</div>
+            <span class="badge ${badgeCls}" style="font-size:10.5px;flex-shrink:0">${badgeLbl}</span>
           </div>
           <div class="fs12 c3" style="margin-top:2px">${grade} · ${total} responses · ${pct !== null ? pct + '% correct' : 'not started'}</div>
           <div class="fs11 c3" style="margin-top:2px">Subjects: ${subjects}</div>
@@ -5120,8 +5165,8 @@ async function renderAdminAnalytics() {
   const todayStr = new Date().toDateString();
 
   // ── Summary stats ──────────────────────────────────────────────
-  const totalResp = allResponses.length;
-  const totalCorr = allResponses.filter(r => r.correct === true || r.correct === 'true').length;
+  const totalCorr = allResponses.filter(r => r.correct === true || r.correct === 'true' || r.correct === 1).length;
+  const totalResp = allResponses.filter(r => r.correct !== undefined && r.correct !== null).length;
   const schoolAvg = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
   const activeToday = new Set(allResponses.filter(r => new Date(r.ts).toDateString() === todayStr).map(r => r.studentId)).size;
 
@@ -5191,6 +5236,25 @@ async function renderAdminAnalytics() {
               font-size="10" font-weight="700" fill="var(--text2,#374151)">${count}</text>` : ''}`;
     }).join('');
     sparkWrap.innerHTML = `<svg viewBox="0 0 ${totalW} ${h + 22}" style="width:100%;max-width:${totalW}px;overflow:visible">${bars}</svg>`;
+  }
+
+  // ── Per-grade breakdown cards ──────────────────────────────────
+  const gradeBreakEl = document.getElementById('an-grade-breakdown');
+  if (gradeBreakEl) {
+    const grades = [3, 4, 5];
+    gradeBreakEl.innerHTML = grades.map(g => {
+      const gResponses = allResponses.filter(r => r.grade == g || r.gradeLevel == g);
+      const gCorr = gResponses.filter(r => r.correct === true || r.correct === 'true' || r.correct === 1).length;
+      const gAcc = gResponses.length ? Math.round(gCorr / gResponses.length * 100) : null;
+      const color = gAcc === null ? 'var(--text-3)' : gAcc >= 70 ? 'var(--green)' : gAcc >= 50 ? 'var(--amber)' : 'var(--red)';
+      return `<div class="card p16 mb12">
+        <div class="fw7 mb8">Grade ${g}</div>
+        <div class="flex gap8 ai-c" style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:24px;font-weight:800;color:${color}">${gAcc !== null ? gAcc+'%' : '—'}</span>
+          <span class="fs12 c3">${gResponses.length} responses</span>
+        </div>
+      </div>`;
+    }).join('');
   }
 
   // ── Per-student table ──────────────────────────────────────────
@@ -6061,11 +6125,25 @@ async function renderTeacherDashboard() {
   const loadingEl = document.querySelector('#t-student-list div[style*="Loading"]');
   if (loadingEl) loadingEl.textContent = 'Fetching data…';
 
+  // Timeout fallback in case data fetch hangs
+  const loadingTimeout = setTimeout(() => {
+    const loadEl = document.querySelector('#teacher-loading, .teacher-loading');
+    if (loadEl) loadEl.style.display = 'none';
+    const emptyEl = document.querySelector('#teacher-empty, .teacher-empty');
+    if (emptyEl) emptyEl.style.display = 'block';
+    const stuListEl = document.getElementById('t-student-list');
+    if (stuListEl && stuListEl.textContent.includes('Fetching')) {
+      stuListEl.innerHTML = `<div style="text-align:center;padding:28px 16px;color:var(--text-3);font-size:13.5px;background:var(--surface);border-radius:var(--r);border:1.5px dashed var(--border)">Unable to load data. Please refresh.</div>`;
+    }
+  }, 5000);
+
   let roster, allResponses;
   try {
     roster = _getRoster();
     allResponses = await _getAllResponsesWithLSBackup();
+    clearTimeout(loadingTimeout);
   } catch(e) {
+    clearTimeout(loadingTimeout);
     roster = _getRoster();
     allResponses = [];
     console.warn('renderTeacherDashboard fetch error', e);
@@ -6376,15 +6454,22 @@ function renderManageStudentsList() {
                     'var(--accent-lt)/var(--accent)', 'var(--green-bg)/var(--green)'];
     const [bg, fg] = colors[i % colors.length].split('/');
     const safeId = id.replace(/'/g, "\\'");
+    const safeName = (name || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;
-                background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm)">
+                background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);cursor:pointer"
+             onclick="openStudentDetailTeacher('${safeName}')">
       <div style="width:38px;height:38px;border-radius:50%;background:${bg};color:${fg};
                   display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">${init}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:700;color:var(--text-1)">${name} ${hasPin}</div>
         <div style="font-size:12px;color:var(--text-3)">${grade}</div>
       </div>
-      <button onclick="deleteStudentFromRoster('${safeId}')"
+      <button onclick="event.stopPropagation();openStudentDetailTeacher('${safeName}')"
+        style="border:1.5px solid var(--primary);background:var(--primary-lt);color:var(--primary);border-radius:var(--r-sm);
+               padding:6px 10px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;margin-right:4px">
+        View
+      </button>
+      <button onclick="event.stopPropagation();deleteStudentFromRoster('${safeId}')"
         style="border:none;background:var(--red-bg);color:var(--red);border-radius:var(--r-sm);
                padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">
         Remove
@@ -6470,6 +6555,16 @@ const URDU_ALPHABET = [
 let luQuizState = { shuffled: [], idx: 0, score: 0, total: 0, answered: false };
 let luCurrentTab = 'learn';
 
+function tileSpeak(el, urdu) {
+  if (el.classList.contains('speaking')) return;
+  el.classList.add('speaking');
+  const utt = new SpeechSynthesisUtterance(urdu);
+  utt.lang = 'ur-PK'; utt.rate = 0.85;
+  utt.onend = utt.onerror = () => el.classList.remove('speaking');
+  speechSynthesis.cancel();
+  speechSynthesis.speak(utt);
+}
+
 function speakUrduLetter(text, tileEl) {
   if (!window.speechSynthesis) return;
   speechSynthesis.cancel();
@@ -6503,7 +6598,7 @@ function buildAlphaGrid() {
   const grid = document.getElementById('lu-alpha-grid');
   if (!grid) return;
   grid.innerHTML = URDU_ALPHABET.map((a, i) =>
-    `<div class="alpha-tile" onclick="speakUrduLetter('${a.name}', this)" data-idx="${i}">
+    `<div class="alpha-tile" onclick="tileSpeak(this, '${a.letter} ${a.name}')" data-idx="${i}">
       <div class="alph-letter">${a.letter}</div>
       <div class="alph-name">${a.nameEn}</div>
     </div>`
