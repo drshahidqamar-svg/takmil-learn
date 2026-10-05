@@ -2049,8 +2049,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v36
-   Fix: Teacher Remove button — id lookup failure for legacy roster entries (Bug 14)
+   TAKMIL-LEARN  ·  v37
+   Fix: Admin analytics — correct check truthy bug + grade breakdown uses real grades (Bug 17)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -5164,8 +5164,11 @@ async function renderAdminAnalytics() {
   const allResponses = await _getAllResponsesWithLSBackup();
   const todayStr = new Date().toDateString();
 
+  // Strict correct check — avoids counting the string 'false' as truthy
+  const isCorrect = r => r.correct === true || r.correct === 'true' || r.correct === 1;
+
   // ── Summary stats ──────────────────────────────────────────────
-  const totalCorr = allResponses.filter(r => r.correct === true || r.correct === 'true' || r.correct === 1).length;
+  const totalCorr = allResponses.filter(isCorrect).length;
   const totalResp = allResponses.filter(r => r.correct !== undefined && r.correct !== null).length;
   const schoolAvg = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
   const activeToday = new Set(allResponses.filter(r => new Date(r.ts).toDateString() === todayStr).map(r => r.studentId)).size;
@@ -5176,7 +5179,7 @@ async function renderAdminAnalytics() {
     const nm = (r.studentId || '').toLowerCase();
     if (!byStudent[nm]) byStudent[nm] = { total:0, correct:0 };
     byStudent[nm].total++;
-    if (r.correct) byStudent[nm].correct++;
+    if (isCorrect(r)) byStudent[nm].correct++;
   });
   const atRisk = Object.values(byStudent).filter(s => s.total > 0 && Math.round(s.correct/s.total*100) < 50).length;
 
@@ -5195,7 +5198,7 @@ async function renderAdminAnalytics() {
   if (barsEl) {
     barsEl.innerHTML = subjects.map(({ key, label, color }) => {
       const rows = allResponses.filter(r => r.subject === key);
-      const pct  = rows.length ? Math.round(rows.filter(r => r.correct).length / rows.length * 100) : 0;
+      const pct  = rows.length ? Math.round(rows.filter(isCorrect).length / rows.length * 100) : 0;
       const cnt  = rows.length;
       return `<div>
         <div class="row jbet" style="font-size:12px;margin-bottom:4px">
@@ -5241,10 +5244,12 @@ async function renderAdminAnalytics() {
   // ── Per-grade breakdown cards ──────────────────────────────────
   const gradeBreakEl = document.getElementById('an-grade-breakdown');
   if (gradeBreakEl) {
-    const grades = [3, 4, 5];
+    // Use grades actually present in the roster, sorted numerically
+    const rosterGrades = [...new Set(roster.map(s => s.grade || '?').filter(g => g !== '?'))].sort((a,b) => a-b);
+    const grades = rosterGrades.length ? rosterGrades : [1,2,3];
     gradeBreakEl.innerHTML = grades.map(g => {
       const gResponses = allResponses.filter(r => r.grade == g || r.gradeLevel == g);
-      const gCorr = gResponses.filter(r => r.correct === true || r.correct === 'true' || r.correct === 1).length;
+      const gCorr = gResponses.filter(isCorrect).length;
       const gAcc = gResponses.length ? Math.round(gCorr / gResponses.length * 100) : null;
       const color = gAcc === null ? 'var(--text-3)' : gAcc >= 70 ? 'var(--green)' : gAcc >= 50 ? 'var(--amber)' : 'var(--red)';
       return `<div class="card p16 mb12">
@@ -5268,7 +5273,7 @@ async function renderAdminAnalytics() {
         const grade = (s && s.grade) ? s.grade : '—';
         const recs  = allResponses.filter(r => (r.studentId || '').toLowerCase() === nm.toLowerCase());
         const total = recs.length;
-        const corr  = recs.filter(r => r.correct).length;
+        const corr  = recs.filter(isCorrect).length;
         const pct   = total ? Math.round(corr / total * 100) : null;
         const color = pct === null ? 'var(--text3,#9ca3af)' : pct >= 70 ? '#16a34a' : pct >= 50 ? '#d97706' : '#dc2626';
         const todayCount = recs.filter(r => new Date(r.ts).toDateString() === todayStr).length;
