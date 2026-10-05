@@ -2049,8 +2049,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v34
-   Fix: Admin students card layout — Clear Data button width:auto (Bugs 18,19,22)
+   TAKMIL-LEARN  ·  v35
+   Fix: Teacher dashboard stuck on Loading — broken querySelector + wrong timeout condition (Bug 13)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -6121,16 +6121,12 @@ async function openTeacherDashboard() {
 }
 
 async function renderTeacherDashboard() {
-  // Clear loading state
-  const loadingEl = document.querySelector('#t-student-list div[style*="Loading"]');
-  if (loadingEl) loadingEl.textContent = 'Fetching data…';
+  // Show a fetching indicator in the student list while data loads
+  const stuListElPre = document.getElementById('t-student-list');
+  if (stuListElPre) stuListElPre.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-3);font-size:13px">Fetching data…</div>';
 
-  // Timeout fallback in case data fetch hangs
+  // Timeout fallback in case IDB hangs — now triggers on "Fetching" text we just set
   const loadingTimeout = setTimeout(() => {
-    const loadEl = document.querySelector('#teacher-loading, .teacher-loading');
-    if (loadEl) loadEl.style.display = 'none';
-    const emptyEl = document.querySelector('#teacher-empty, .teacher-empty');
-    if (emptyEl) emptyEl.style.display = 'block';
     const stuListEl = document.getElementById('t-student-list');
     if (stuListEl && stuListEl.textContent.includes('Fetching')) {
       stuListEl.innerHTML = `<div style="text-align:center;padding:28px 16px;color:var(--text-3);font-size:13.5px;background:var(--surface);border-radius:var(--r);border:1.5px dashed var(--border)">Unable to load data. Please refresh.</div>`;
