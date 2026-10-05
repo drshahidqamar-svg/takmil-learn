@@ -1499,7 +1499,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
           <span class="badge b-pri">صفت · Adjective</span>
         </div>
         <div class="fs13 fw7">Hardworking / Diligent</div>
-        <div class="u-font fs12 c3" style="direction:rtl;text-align:right;line-height:1.9">محنت + ی = محنتی</div>
+        <div id="u-morph-line" class="u-font fs12 c3" style="direction:rtl;text-align:right;line-height:1.9">محنت + ی = محنتی</div>
       </div>
     </div>
 
@@ -2049,8 +2049,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v44
-   Fix: Roman Urdu text clears between questions, phonics card hidden for grammar (Bug 7b)
+   TAKMIL-LEARN  ·  v45
+   Fix: Morphology line also hidden when no romanUrdu (Bug 7b)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -3973,6 +3973,8 @@ function renderUrduQ(q) {
   // Update Roman Urdu phonics text — Bug 7b: use ID, always clear when missing
   const romanEl = document.getElementById('u-roman-text');
   if (romanEl) romanEl.textContent = q.romanUrdu || '';
+  const morphLine = document.getElementById('u-morph-line');
+  if (morphLine) morphLine.hidden = !q.romanUrdu;
 
   // Update phonics breakdown
   const phonicsCardEl = document.getElementById('u-phonics-card');
