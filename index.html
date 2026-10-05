@@ -820,7 +820,7 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
       </div>
       <!-- Dot grid visual -->
       <div id="dot-grid" style="background:var(--surface-2);border-radius:11px;padding:14px;margin-bottom:14px;display:flex;justify-content:center"></div>
-      <div class="fs12 c3" style="text-align:center;margin-top:-8px;margin-bottom:12px;direction:rtl">7 قطاریں × 8 = ؟</div>
+      <div id="math-q-visual-urdu" class="fs12 c3" style="text-align:center;margin-top:-8px;margin-bottom:12px;direction:rtl">7 قطاریں × 8 = ؟</div>
       <div class="nunito fw8" style="font-size:28px;text-align:center" id="math-q-text">7 × 8 = ?</div>
       <div class="fs13 c3" style="text-align:center;margin-top:2px" id="math-q-urdu">سات ضرب آٹھ برابر کیا ہے؟</div>
     </div>
@@ -2049,8 +2049,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v39
-   Fix: At-risk count uses roster-only filter (Bug 17) + student profile uses strict isCorrect check
+   TAKMIL-LEARN  ·  v40
+   Fix: Math Urdu subtitle (visual-urdu line) now updates per question (Bugs 5 & 6)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -3839,6 +3839,8 @@ function renderMathQ(q) {
   if (qText) qText.textContent = q.text;
   const qUrdu = document.getElementById('math-q-urdu') || document.querySelector('#s-assess .fs13.c3[style*="center"]');
   if (qUrdu) qUrdu.textContent = q.textUrdu || '';
+  const qVisualUrdu = document.getElementById('math-q-visual-urdu');
+  if (qVisualUrdu) qVisualUrdu.textContent = q.textUrdu || '';
 
   // Dot grid
   const grid = document.getElementById('dot-grid');
