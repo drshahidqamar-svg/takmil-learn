@@ -2049,8 +2049,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v35
-   Fix: Teacher dashboard stuck on Loading — broken querySelector + wrong timeout condition (Bug 13)
+   TAKMIL-LEARN  ·  v36
+   Fix: Teacher Remove button — id lookup failure for legacy roster entries (Bug 14)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -4714,7 +4714,7 @@ function addStudentToRoster() {
     setTimeout(() => pinInp.style.borderColor = '', 1500);
     return;
   }
-  _rosterInProgress.push(pin ? { name, pin } : name);
+  _rosterInProgress.push({ id: 'stu-' + Date.now() + '-' + Math.random().toString(36).slice(2,6), name, ...(pin ? {pin} : {}) });
   nameInp.value = '';
   if (pinInp) pinInp.value = '';
   nameInp.focus();
@@ -6415,10 +6415,17 @@ function addManagedStudent() {
 
 function deleteStudentFromRoster(studentId) {
   let roster = _getRoster();
-  const student = roster.find(s => s.id === studentId);
+  // Match by id first; fall back to name for legacy entries saved without an id
+  let student = roster.find(s => s.id === studentId);
+  if (!student) student = roster.find(s => (typeof s === 'string' ? s : s.name) === studentId);
   if (!student) return;
-  if (!confirm('Remove ' + student.name + ' from the roster?')) return;
-  roster = roster.filter(s => s.id !== studentId);
+  const studentName = typeof student === 'string' ? student : student.name;
+  if (!confirm('Remove ' + studentName + ' from the roster?')) return;
+  roster = roster.filter(s => {
+    if (s.id && s.id === studentId) return false;
+    if ((typeof s === 'string' ? s : s.name) === studentName) return false;
+    return true;
+  });
   _saveRoster(roster);
   renderManageStudentsList();
   _loadRosterForPicker();
@@ -6444,7 +6451,7 @@ function renderManageStudentsList() {
     const name  = typeof s === 'string' ? s : s.name;
     const grade = s.grade ? 'Grade ' + s.grade : '';
     const hasPin = s.pin ? '🔒' : '';
-    const id    = s.id || 'idx-' + i;
+    const id    = s.id || name;   // use name as fallback key for legacy entries without id
     const init  = name.charAt(0).toUpperCase();
     const colors = ['var(--primary-lt)/var(--primary)', 'var(--blue-bg)/var(--blue)',
                     'var(--accent-lt)/var(--accent)', 'var(--green-bg)/var(--green)'];
