@@ -2049,8 +2049,8 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v38
-   Fix: Admin at-risk count truthy bug in Overview + Analytics grade breakdown uses roster grades (Bug 17)
+   TAKMIL-LEARN  ·  v39
+   Fix: At-risk count uses roster-only filter (Bug 17) + student profile uses strict isCorrect check
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -4987,7 +4987,7 @@ async function renderAdminOverview() {
     const totalResp    = allResponses.filter(r => r.correct !== undefined && r.correct !== null).length;
     const schoolAvg    = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
 
-    // per-student at-risk count
+    // per-student at-risk count — roster students only (excludes demo-student)
     const byStudent = {};
     allResponses.forEach(r => {
       const nm = (r.studentId || '').toLowerCase();
@@ -4995,7 +4995,11 @@ async function renderAdminOverview() {
       byStudent[nm].total++;
       if (r.correct === true || r.correct === 'true' || r.correct === 1) byStudent[nm].correct++;
     });
-    const atRisk = Object.values(byStudent).filter(s => s.total > 0 && Math.round(s.correct/s.total*100) < 50).length;
+    const atRisk = roster.filter(s => {
+      const nm = (typeof s === 'object' ? s.name : s).toLowerCase();
+      const stu = byStudent[nm];
+      return stu && stu.total > 0 && Math.round(stu.correct / stu.total * 100) < 50;
+    }).length;
 
     const avgEl  = document.getElementById('admin-stat-avg');
     const riskEl = document.getElementById('admin-stat-risk');
@@ -5173,7 +5177,7 @@ async function renderAdminAnalytics() {
   const schoolAvg = totalResp ? Math.round(totalCorr / totalResp * 100) : null;
   const activeToday = new Set(allResponses.filter(r => new Date(r.ts).toDateString() === todayStr).map(r => r.studentId)).size;
 
-  // per-student accuracy
+  // per-student accuracy — roster students only (excludes demo-student)
   const byStudent = {};
   allResponses.forEach(r => {
     const nm = (r.studentId || '').toLowerCase();
@@ -5181,7 +5185,11 @@ async function renderAdminAnalytics() {
     byStudent[nm].total++;
     if (isCorrect(r)) byStudent[nm].correct++;
   });
-  const atRisk = Object.values(byStudent).filter(s => s.total > 0 && Math.round(s.correct/s.total*100) < 50).length;
+  const atRisk = roster.filter(s => {
+    const nm = (typeof s === 'object' ? s.name : s).toLowerCase();
+    const stu = byStudent[nm];
+    return stu && stu.total > 0 && Math.round(stu.correct / stu.total * 100) < 50;
+  }).length;
 
   setEl('an-total-resp',   totalResp || '0');
   setEl('an-school-avg',   schoolAvg !== null ? schoolAvg + '%' : '—');
@@ -6303,11 +6311,14 @@ async function openStudentDetailTeacher(name) {
   const subjectLabel = { math:'Math', urdu:'Urdu', english:'English' };
   const subjectBadge = { math:'b-pri', urdu:'b-amber', english:'b-green' };
 
+  // Strict correct check — same as admin analytics (avoids string 'false' being truthy)
+  const isCorrectRec = r => r.correct === true || r.correct === 'true' || r.correct === 1;
+
   const badgesWrap = document.querySelector('#s-stu-detail .row.gap8');
   if (badgesWrap) {
     badgesWrap.innerHTML = subjects.map(subj => {
       const sr  = recs.filter(r => r.subject === subj);
-      const pct = sr.length ? Math.round(sr.filter(r => r.correct).length / sr.length * 100) : null;
+      const pct = sr.length ? Math.round(sr.filter(isCorrectRec).length / sr.length * 100) : null;
       const cls = pct === null ? 'b-pri' : pct >= 70 ? 'b-green' : pct >= 50 ? 'b-amber' : 'b-red';
       return `<span class="badge ${cls}">${subjectLabel[subj]}: ${pct !== null ? pct + '%' : '—'}</span>`;
     }).join('');
@@ -6316,10 +6327,10 @@ async function openStudentDetailTeacher(name) {
   const insightEl = document.querySelector('#s-stu-detail .fs14.c2[style*="1.65"]');
   if (insightEl) {
     const total   = recs.length;
-    const correct = recs.filter(r => r.correct).length;
+    const correct = recs.filter(isCorrectRec).length;
     const overall = total ? Math.round(correct / total * 100) : null;
     const weakSubj = subjects
-      .map(s => { const r = recs.filter(x => x.subject === s); return { s, pct: r.length ? Math.round(r.filter(x => x.correct).length / r.length * 100) : 100 }; })
+      .map(s => { const r = recs.filter(x => x.subject === s); return { s, pct: r.length ? Math.round(r.filter(isCorrectRec).length / r.length * 100) : 100 }; })
       .sort((a,b) => a.pct - b.pct)[0];
     insightEl.innerHTML = overall === null
       ? 'No assessment data yet. Encourage this student to start.'
