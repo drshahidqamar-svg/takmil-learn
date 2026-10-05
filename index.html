@@ -1488,18 +1488,18 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
     </div>
 
     <!-- Vocab spotlight (top of question) -->
-    <div class="card row gap12" id="u-vocab-card" style="background:var(--primary-lt);border:1.5px solid var(--primary)">
-      <div style="flex-shrink:0;text-align:center;min-width:60px">
-        <div class="u-font fw7" style="font-size:26px;color:var(--primary);line-height:2;direction:rtl;text-align:center">محنتی</div>
-        <div id="u-roman-text" class="fs11 c3" style="margin-top:0">mih-na-ti</div>
+    <div class="card row gap12" id="u-vocab-card" style="background:var(--primary-lt);border:1.5px solid var(--primary);direction:rtl">
+      <div class="col gap4" style="flex:1">
+        <div class="row gap6 flex-wrap" style="direction:ltr">
+          <span id="u-vocab-badge" class="badge b-pri">صفت · Adjective</span>
+        </div>
+        <div id="u-vocab-eng" class="fs13 fw7" style="direction:ltr">Hardworking / Diligent</div>
+        <div id="u-morph-line" class="u-font fs12 c3" style="direction:rtl;text-align:right;line-height:1.9">محنت + ی = محنتی</div>
       </div>
       <div style="width:1px;background:var(--border);flex-shrink:0"></div>
-      <div class="col gap4">
-        <div class="row gap6 flex-wrap">
-          <span class="badge b-pri">صفت · Adjective</span>
-        </div>
-        <div class="fs13 fw7">Hardworking / Diligent</div>
-        <div id="u-morph-line" class="u-font fs12 c3" style="direction:rtl;text-align:right;line-height:1.9">محنت + ی = محنتی</div>
+      <div style="flex-shrink:0;text-align:center;min-width:60px">
+        <div id="u-vocab-word" class="u-font fw7" style="font-size:26px;color:var(--primary);line-height:2;text-align:center">محنتی</div>
+        <div id="u-roman-text" class="fs11 c3" style="margin-top:0">mih-na-ti</div>
       </div>
     </div>
 
@@ -2049,8 +2049,9 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v45
-   Fix: Morphology line also hidden when no romanUrdu (Bug 7b)
+   TAKMIL-LEARN  ·  v46
+   Fix: Vocab card RTL layout, correct word/badge per question,
+        only shown for Vocabulary skill questions (Bug 7c)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -3571,6 +3572,7 @@ const QBANK = {
     /* ── VOCABULARY (context sentence as passage) ───── */
     {
       id:'u-vocab-1-1', subject:'urdu', skill:'Vocabulary', skillUrdu:'الفاظ',
+      pos:'صفت', posEn:'Adjective',
       diff:1,
       passage:'احمد ہر روز محنت کرتا ہے — وہ بہت محنتی لڑکا ہے۔',
       passageTrans:'Ahmad works hard every day — he is a very hardworking boy.',
@@ -3586,6 +3588,7 @@ const QBANK = {
     },
     {
       id:'u-vocab-1-2', subject:'urdu', skill:'Vocabulary', skillUrdu:'الفاظ',
+      pos:'صفت', posEn:'Adjective',
       diff:1,
       passage:'گلاب ایک خوبصورت پھول ہے — اس کی خوشبو بہت اچھی ہوتی ہے۔',
       passageTrans:'The rose is a beautiful flower — its fragrance is very pleasant.',
@@ -3601,6 +3604,7 @@ const QBANK = {
     },
     {
       id:'u-vocab-2-1', subject:'urdu', skill:'Vocabulary', skillUrdu:'الفاظ',
+      pos:'صفت', posEn:'Adjective',
       diff:2,
       passage:'مریض کی حالت نازک تھی — ڈاکٹر نے فوری علاج شروع کیا۔',
       passageTrans:'The patient\'s condition was critical — the doctor started immediate treatment.',
@@ -3616,6 +3620,7 @@ const QBANK = {
     },
     {
       id:'u-vocab-2-2', subject:'urdu', skill:'Vocabulary', skillUrdu:'الفاظ',
+      pos:'اسم', posEn:'Noun',
       diff:2,
       passage:'بڑوں کا احترام اور چھوٹوں پر شفقت ہماری ذمہ داری ہے۔',
       passageTrans:'Respecting elders and being kind to the young is our responsibility.',
@@ -3631,6 +3636,7 @@ const QBANK = {
     },
     {
       id:'u-vocab-2-3', subject:'urdu', skill:'Vocabulary', skillUrdu:'الفاظ',
+      pos:'اسم', posEn:'Noun',
       diff:2,
       passage:'سارہ نے ہمت نہیں ہاری اور امتحان میں کامیاب ہوگئی۔',
       passageTrans:'Sara did not lose courage and succeeded in the exam.',
@@ -3920,7 +3926,7 @@ function renderUrduQ(q) {
   const letterPanel = document.getElementById('u-letter-panel');
   const wordPanel   = document.getElementById('u-word-panel');
 
-  if (vocabCard)   vocabCard.hidden   = !isPassage;
+  if (vocabCard)   vocabCard.hidden   = !(isPassage && q.skill === 'Vocabulary');
   if (passageCard) passageCard.hidden = !isPassage;
   if (phonicsCard) phonicsCard.hidden = !(isPassage && q.phonics);
   if (letterPanel) letterPanel.hidden = !isLetter;
@@ -3935,12 +3941,19 @@ function renderUrduQ(q) {
       if (tp) tp.textContent = q.passageTrans || '';
       transBlock.hidden = true;
     }
-    // Dynamically update vocab spotlight card with the correct answer word
-    const correct = q.options ? q.options.find(o => o.correct) : null;
-    const vocabWordEl = document.querySelector('#u-vocab-card .u-font.fw7');
-    const vocabEngEl  = document.querySelector('#u-vocab-card .fs13.fw7');
-    if (vocabWordEl && correct) vocabWordEl.textContent = correct.text || '';
-    if (vocabEngEl  && correct) vocabEngEl.textContent  = correct.textEn || correct.text || '';
+    // Dynamically update vocab spotlight card — only for Vocabulary skill (Bug 7c)
+    if (q.skill === 'Vocabulary') {
+      const correct = q.options ? q.options.find(o => o.correct) : null;
+      // Extract the vocab word being tested (the word in quotes in the question text)
+      const match = q.text && q.text.match(/"([^"]+)"/);
+      const vocabWord = match ? match[1] : '';
+      const vocabWordEl = document.getElementById('u-vocab-word');
+      if (vocabWordEl) vocabWordEl.textContent = vocabWord;
+      const vocabEngEl = document.getElementById('u-vocab-eng');
+      if (vocabEngEl && correct) vocabEngEl.textContent = correct.textEn || correct.text || '';
+      const vocabBadge = document.getElementById('u-vocab-badge');
+      if (vocabBadge && q.pos && q.posEn) vocabBadge.textContent = q.pos + ' · ' + q.posEn;
+    }
   } else if (isLetter) {
     const ld = document.getElementById('u-letter-display');
     if (ld) ld.textContent = q.letter || '';
