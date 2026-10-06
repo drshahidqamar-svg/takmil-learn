@@ -2049,9 +2049,9 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v46
-   Fix: Vocab card RTL layout, correct word/badge per question,
-        only shown for Vocabulary skill questions (Bug 7c)
+   TAKMIL-LEARN  ·  v47
+   Fix: English phonics TTS strips IPA slashes, uses natural
+        "The letter S. As in sun." phrasing (Bug 9a)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -4097,11 +4097,17 @@ function renderEnglishQ(q) {
   });
 
   nav('s-eng-assess');
-  // Auto-read question aloud + speak letter sound for phonics
+  // Auto-read question aloud + speak letter sound for phonics (Bug 9a: strip IPA slashes)
   setTimeout(() => {
-    speak(q.text, q.textUrdu);
+    // Strip /x/ IPA notation before speaking so TTS doesn't say "slash s slash"
+    const stripIPA = t => (t||'').replace(/\/([^/]+)\//g, '$1')
+      .replace(/ʃ/g,'sh').replace(/tʃ/g,'ch').replace(/θ/g,'th')
+      .replace(/æ/g,'a').replace(/aʊ/g,'ow');
+    speak(stripIPA(q.text), stripIPA(q.textUrdu));
     if (q.type === 'phonics') {
-      const ttsText = q.letterFocus ? 'the letter ' + q.letterFocus + (q.soundLabel ? ', sound: ' + q.soundLabel : '') : (q.soundLabel || '');
+      // Say "The letter S. As in sun." — natural for young learners
+      const firstWord = q.exampleWords ? q.exampleWords.split(',')[0].trim() : '';
+      const ttsText = 'The letter ' + q.letterFocus + (firstWord ? '. As in ' + firstWord : '');
       setTimeout(() => speakOnly(ttsText, 'en'), 1600);
     }
   }, 400);
