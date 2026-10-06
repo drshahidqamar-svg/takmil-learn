@@ -2049,9 +2049,10 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v47
-   Fix: English phonics TTS strips IPA slashes, uses natural
-        "The letter S. As in sun." phrasing (Bug 9a)
+   TAKMIL-LEARN  ·  v48
+   Fix: English phonics TTS sequential speakOnly() chain —
+        question plays first, then "The letter S. As in sun."
+        Prevents Android Chrome cancellation regression (Bug 9a)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -4097,18 +4098,19 @@ function renderEnglishQ(q) {
   });
 
   nav('s-eng-assess');
-  // Auto-read question aloud + speak letter sound for phonics (Bug 9a: strip IPA slashes)
+  // Auto-read question aloud + speak letter sound for phonics (Bug 9a)
   setTimeout(() => {
-    // Strip /x/ IPA notation before speaking so TTS doesn't say "slash s slash"
     const stripIPA = t => (t||'').replace(/\/([^/]+)\//g, '$1')
       .replace(/ʃ/g,'sh').replace(/tʃ/g,'ch').replace(/θ/g,'th')
       .replace(/æ/g,'a').replace(/aʊ/g,'ow');
-    speak(stripIPA(q.text), stripIPA(q.textUrdu));
     if (q.type === 'phonics') {
-      // Say "The letter S. As in sun." — natural for young learners
+      // Chain: question text THEN "The letter S. As in sun."
+      // Uses sequential speakOnly() to avoid multi-utterance queue cancellation (Android Chrome)
       const firstWord = q.exampleWords ? q.exampleWords.split(',')[0].trim() : '';
-      const ttsText = 'The letter ' + q.letterFocus + (firstWord ? '. As in ' + firstWord : '');
-      setTimeout(() => speakOnly(ttsText, 'en'), 1600);
+      const letterTts = 'The letter ' + q.letterFocus + (firstWord ? '. As in ' + firstWord : '');
+      speakOnly(stripIPA(q.text), 'en').then(() => speakOnly(letterTts, 'en'));
+    } else {
+      speak(stripIPA(q.text), stripIPA(q.textUrdu));
     }
   }, 400);
 }
