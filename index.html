@@ -156,33 +156,40 @@
   background: var(--surface);
   border: 2.5px solid var(--border);
   border-radius: var(--r);
-  padding: 22px 8px;
+  padding: 10px 8px 12px;
   text-align: center;
   cursor: pointer;
   transition: transform .1s, border-color .15s, background .15s;
   -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 130px;
 }
 .quiz-choice:active { transform: scale(.95); }
 .quiz-choice .choice-letter {
   font-family: 'Noto Nastaliq Urdu', serif;
-  font-size: 40px;
-  line-height: 2.4;     /* Nastaliq descenders need 2x+ room */
-  display: block;
-  direction: rtl;
-  min-height: 80px;     /* floor so choice-name never overlaps */
+  font-size: 36px;
+  line-height: 1.8;
+  flex: 1;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  direction: rtl;
   overflow: visible;
+  /* large margin-bottom pushes name BELOW descender overflow zone */
+  margin-bottom: 26px;
 }
 .quiz-choice .choice-name {
+  flex-shrink: 0;
   font-size: 11px;
   color: var(--text-3);
-  margin-top: 4px;
-  position: relative;
+  margin-top: 0;
   font-weight: 600;
   display: block;
   direction: ltr;
+  position: relative;
 }
 .quiz-choice.correct {
   border-color: var(--green);
@@ -2120,10 +2127,11 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v57
-   Fix: Quiz tab choice tiles and prompt — Nastaliq line-height
-        raised to 2.4 / 2.2 with min-height floors so letter glyphs
-        no longer overlap phonics/name text below (Bug 12d)
+   TAKMIL-LEARN  ·  v58
+   Fix: Quiz choice tiles — switched to flex-column layout with
+        margin-bottom: 26px on .choice-letter so phonics name text
+        is physically below the Nastaliq descender overflow zone
+        (Bug 12d — stronger approach after v57 still overlapped)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
