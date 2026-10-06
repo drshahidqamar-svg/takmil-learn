@@ -2049,9 +2049,9 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v49
-   Fix: TTS strips ___ blanks → reads "blank" instead of
-        "underscore underscore underscore" (Bug 9a follow-up)
+   TAKMIL-LEARN  ·  v50
+   Fix: English assessment TTS reads English only — no Urdu
+        appended after English questions (Bug 9a follow-up)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -4110,7 +4110,8 @@ function renderEnglishQ(q) {
       const letterTts = 'The letter ' + q.letterFocus + (firstWord ? '. As in ' + firstWord : '');
       speakOnly(stripIPA(q.text), 'en').then(() => speakOnly(letterTts, 'en'));
     } else {
-      speak(stripIPA(q.text), stripIPA(q.textUrdu));
+      // English assessment — read English only, no Urdu
+      speakOnly(stripIPA(q.text), 'en');
     }
   }, 400);
 }
