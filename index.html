@@ -2045,14 +2045,71 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 </div><!-- /s-progress -->
 
 
+<!-- ═══════════════════════════════ PROFILE SCREEN ══ -->
+<div id="s-profile" class="screen" hidden>
+  <div class="scroll" style="padding-bottom:80px">
+    <div style="background:linear-gradient(135deg,var(--primary),var(--primary-dark,#1a6fa8));padding:32px 20px 24px;text-align:center;color:#fff">
+      <div style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:32px">👤</div>
+      <div id="prof-name" style="font-size:22px;font-weight:700;letter-spacing:.3px">—</div>
+      <div id="prof-grade" style="font-size:14px;opacity:.85;margin-top:4px">Grade —</div>
+    </div>
+
+    <div style="padding:20px 16px;display:flex;flex-direction:column;gap:12px">
+
+      <!-- Info card -->
+      <div style="background:var(--surface-1);border-radius:14px;padding:16px;border:1px solid var(--border)">
+        <div style="font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Student Info · طالب علم کی معلومات</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:14px;color:var(--text-2)">Name</span>
+            <span id="prof-name-val" style="font-size:14px;font-weight:600;color:var(--text-1)">—</span>
+          </div>
+          <div style="height:1px;background:var(--border)"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:14px;color:var(--text-2)">Grade</span>
+            <span id="prof-grade-val" style="font-size:14px;font-weight:600;color:var(--text-1)">—</span>
+          </div>
+          <div style="height:1px;background:var(--border)"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:14px;color:var(--text-2)">PIN</span>
+            <span id="prof-pin-val" style="font-size:14px;font-weight:600;color:var(--text-1)">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div style="background:var(--surface-2,#f5f5f5);border-radius:12px;padding:14px 16px;display:flex;gap:10px;align-items:flex-start">
+        <span style="font-size:20px;line-height:1">ℹ️</span>
+        <span style="font-size:13px;color:var(--text-2);line-height:1.5">To change your name, grade or PIN, ask your teacher.<br><span style="font-size:12px;color:var(--text-3)">نام، جماعت یا PIN تبدیل کرنے کے لیے استاد سے رابطہ کریں۔</span></span>
+      </div>
+
+    </div>
+  </div>
+
+  <nav class="bnav">
+    <button class="bnav-item" onclick="bnavSwitch('home')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12L12 3l9 9"/><path d="M9 21V9h6v12"/></svg>Home
+    </button>
+    <button class="bnav-item" onclick="bnavSwitch('learn')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Learn
+    </button>
+    <button class="bnav-item" onclick="bnavSwitch('progress')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progress
+    </button>
+    <button class="bnav-item on">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </button>
+  </nav>
+</div><!-- /s-profile -->
+
 </div><!-- /app -->
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v52
-   Fix: Bottom nav wired correctly on Learn & Progress screens —
-        all bnav buttons now use bnavSwitch() exclusively so
-        active highlight stays in sync with current screen (Bug 12a)
+   TAKMIL-LEARN  ·  v53
+   Fix: Profile tab now opens a real in-page screen instead of
+        a browser alert(); shows student name, grade, PIN info
+        with proper bottom nav (Bug 12a — Profile screen)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -4954,31 +5011,23 @@ function bnavSwitch(tab) {
   } else if (tab === 'progress') {
     openProgressScreen();
   } else if (tab === 'profile') {
-    openStudentProfile();
-    // Reset active state to home since profile uses an alert, not a screen
-    setTimeout(() => {
-      ['home','learn','progress','profile'].forEach(t => {
-        const btn = document.getElementById('bnav-' + t);
-        if (btn) btn.classList.toggle('on', t === 'home');
-      });
-    }, 100);
+    nav('s-profile');
+    renderProfileScreen();
   }
 }
 
-function openStudentProfile() {
-  // Build a quick profile overlay
+function renderProfileScreen() {
   let roster = [];
   try { roster = JSON.parse(localStorage.getItem('takmil-roster') || '[]'); } catch(e) {}
   const entry = roster.find(s => (typeof s === 'object' ? s.name : s) === currentStudentId);
-  const grade = (entry && entry.grade) ? entry.grade : '—';
-  const hasPin = entry && entry.pin ? '🔒 PIN set' : '👆 No PIN';
-  // Navigate to a simple screen or show alert for now
-  alert(`Student: ${currentStudentId}\nGrade: ${grade}\nPIN: ${hasPin}\n\nTo edit, ask your teacher.`);
-  // Reset bnav
-  ['home','subjects','progress','profile'].forEach(t => {
-    const btn = document.getElementById('bnav-' + t);
-    if (btn) btn.classList.toggle('on', t === 'home');
-  });
+  const grade = (entry && entry.grade) ? ('Grade ' + entry.grade) : 'Grade —';
+  const pinLabel = entry && entry.pin ? '🔒 PIN set' : '👆 No PIN';
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setTxt('prof-name', currentStudentId || '—');
+  setTxt('prof-grade', grade);
+  setTxt('prof-name-val', currentStudentId || '—');
+  setTxt('prof-grade-val', (entry && entry.grade) ? entry.grade : '—');
+  setTxt('prof-pin-val', pinLabel);
 }
 
 /* ── ADMIN OVERVIEW ──────────────────────────────────── */
