@@ -2111,10 +2111,10 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v54
-   Fix: Urdu letter tiles — increased Nastaliq line-height to 2.4
-        and set min-height:56px so Roman pronunciation text no
-        longer overlaps the letter glyph (Bug 12b)
+   TAKMIL-LEARN  ·  v56
+   Fix: Android Chrome double-speak — speakOnly() now waits 60ms
+        after cancel() before queuing new utterance, plus global
+        _ttsLock prevents concurrent TTS fires (Bug 12c)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -5993,22 +5993,40 @@ function _selectVoice(lang) {
 
 function stopSpeech() {
   try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch(e) {}
+  _ttsLock = false;
 }
+
+let _ttsLock = false; // global lock — prevents Android double-fire
 
 function speakOnly(text, lang) {
   if (!_speechEnabled || !window.speechSynthesis || !text) return Promise.resolve();
   return new Promise(resolve => {
     try {
-      stopSpeech();
-      const utt = new SpeechSynthesisUtterance(text);
-      utt.lang = lang === 'ur' ? 'ur-PK' : 'en-US';
-      const v = _selectVoice(lang);
-      if (v) utt.voice = v;
-      utt.rate = 0.9; utt.pitch = 1; utt.volume = 1;
-      utt.onend = () => resolve();
-      utt.onerror = () => resolve();
-      window.speechSynthesis.speak(utt);
-    } catch(e) { resolve(); }
+      // Cancel any in-flight utterance
+      window.speechSynthesis.cancel();
+      _ttsLock = false;
+      if (_ttsLock) { resolve(); return; }
+      _ttsLock = true;
+
+      const done = () => { _ttsLock = false; resolve(); };
+
+      // Android Chrome double-speak fix: wait one frame after cancel
+      // before queueing the new utterance — prevents the engine from
+      // firing both the selected voice AND the system default voice.
+      setTimeout(() => {
+        if (!_ttsLock) { resolve(); return; } // cancelled while waiting
+        try {
+          const utt = new SpeechSynthesisUtterance(text);
+          utt.lang = lang === 'ur' ? 'ur-PK' : 'en-US';
+          const v = _selectVoice(lang);
+          if (v) utt.voice = v;
+          utt.rate = 0.9; utt.pitch = 1; utt.volume = 1;
+          utt.onend = done;
+          utt.onerror = done;
+          window.speechSynthesis.speak(utt);
+        } catch(e) { done(); }
+      }, 60);
+    } catch(e) { _ttsLock = false; resolve(); }
   });
 }
 
@@ -6666,11 +6684,7 @@ let luCurrentTab = 'learn';
 function tileSpeak(el, urdu) {
   if (el.classList.contains('speaking')) return;
   el.classList.add('speaking');
-  const utt = new SpeechSynthesisUtterance(urdu);
-  utt.lang = 'ur-PK'; utt.rate = 0.85;
-  utt.onend = utt.onerror = () => el.classList.remove('speaking');
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utt);
+  speakOnly(urdu, 'ur').then(() => el.classList.remove('speaking'));
 }
 
 function speakUrduLetter(text, tileEl) {
@@ -6706,7 +6720,7 @@ function buildAlphaGrid() {
   const grid = document.getElementById('lu-alpha-grid');
   if (!grid) return;
   grid.innerHTML = URDU_ALPHABET.map((a, i) =>
-    `<div class="alpha-tile" onclick="tileSpeak(this, '${a.letter} ${a.name}')" data-idx="${i}">
+    `<div class="alpha-tile" onclick="tileSpeak(this, '${a.name}')" data-idx="${i}">
       <div class="alph-letter">${a.letter}</div>
       <div class="alph-name">${a.nameEn}</div>
     </div>`
