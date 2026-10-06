@@ -136,7 +136,11 @@
   font-family: 'Noto Nastaliq Urdu', serif;
   font-size: 26px;
   margin-top: 4px;
-  line-height: 1.4;
+  line-height: 2.2;     /* prevent descenders hitting prompt-en below */
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .quiz-prompt .prompt-en {
   font-size: 13px;
@@ -161,16 +165,21 @@
 .quiz-choice:active { transform: scale(.95); }
 .quiz-choice .choice-letter {
   font-family: 'Noto Nastaliq Urdu', serif;
-  font-size: 46px;
-  line-height: 1.2;
+  font-size: 40px;
+  line-height: 2.4;     /* Nastaliq descenders need 2x+ room */
   display: block;
   direction: rtl;
-  min-height: 60px;
+  min-height: 80px;     /* floor so choice-name never overlaps */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
 }
 .quiz-choice .choice-name {
   font-size: 11px;
   color: var(--text-3);
-  margin-top: 6px;
+  margin-top: 4px;
+  position: relative;
   font-weight: 600;
   display: block;
   direction: ltr;
@@ -2111,10 +2120,10 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v56
-   Fix: Android Chrome double-speak — speakOnly() now waits 60ms
-        after cancel() before queuing new utterance, plus global
-        _ttsLock prevents concurrent TTS fires (Bug 12c)
+   TAKMIL-LEARN  ·  v57
+   Fix: Quiz tab choice tiles and prompt — Nastaliq line-height
+        raised to 2.4 / 2.2 with min-height floors so letter glyphs
+        no longer overlap phonics/name text below (Bug 12d)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
