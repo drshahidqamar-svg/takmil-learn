@@ -2127,11 +2127,12 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v58
-   Fix: Quiz choice tiles — switched to flex-column layout with
-        margin-bottom: 26px on .choice-letter so phonics name text
-        is physically below the Nastaliq descender overflow zone
-        (Bug 12d — stronger approach after v57 still overlapped)
+   TAKMIL-LEARN  ·  v59
+   Fix: PWA install prompt (Bug 25) — added sw.js to repo root
+        so Android Chrome registers a same-origin service worker
+        (blob: URL fallback is blocked on Android, causing
+        beforeinstallprompt to never fire and "Add to Home Screen"
+        to not appear in Chrome's three-dot menu)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
