@@ -2049,10 +2049,9 @@ button { cursor:pointer; border:none; background:none; font:inherit; color:inher
 
 <script>
 /* ══════════════════════════════════════════════════════
-   TAKMIL-LEARN  ·  v48
-   Fix: English phonics TTS sequential speakOnly() chain —
-        question plays first, then "The letter S. As in sun."
-        Prevents Android Chrome cancellation regression (Bug 9a)
+   TAKMIL-LEARN  ·  v49
+   Fix: TTS strips ___ blanks → reads "blank" instead of
+        "underscore underscore underscore" (Bug 9a follow-up)
    ══════════════════════════════════════════════════════ */
 
 /* ── NAVIGATION ─────────────────────────────────────── */
@@ -4102,7 +4101,8 @@ function renderEnglishQ(q) {
   setTimeout(() => {
     const stripIPA = t => (t||'').replace(/\/([^/]+)\//g, '$1')
       .replace(/ʃ/g,'sh').replace(/tʃ/g,'ch').replace(/θ/g,'th')
-      .replace(/æ/g,'a').replace(/aʊ/g,'ow');
+      .replace(/æ/g,'a').replace(/aʊ/g,'ow')
+      .replace(/_+/g, 'blank');
     if (q.type === 'phonics') {
       // Chain: question text THEN "The letter S. As in sun."
       // Uses sequential speakOnly() to avoid multi-utterance queue cancellation (Android Chrome)
